@@ -244,6 +244,16 @@
 </head>
 <body>
 
+<div id="fatalError" style="display:none; position:fixed; top:0; left:0; right:0; z-index:999; background:#C1503F; color:#fff; padding:12px 20px; font-family:sans-serif; font-size:14px; text-align:center;">
+  No se pudo conectar con la base de datos. Verifica tu conexión a internet y que las reglas de Firestore estén publicadas.
+</div>
+<script>
+  window.addEventListener('error', function(){
+    var box = document.getElementById('fatalError');
+    if(box) box.style.display = 'block';
+  });
+</script>
+
 <header>
   <div class="brand" id="brandText">Rosa <span>de Barro</span></div>
   <div class="header-actions">
@@ -416,10 +426,10 @@
    del sitio viven en la nube: cualquiera que entre al link ve
    los mismos datos, y el admin los edita desde el panel.
 ====================================================== */
-import { initializeApp } from "https://cdn.jsdelivr.net/npm/firebase@10.12.2/app/+esm";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot
-} from "https://cdn.jsdelivr.net/npm/firebase@10.12.2/firestore/+esm";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDmZe23G6D6Z2tpM02T8oGVAfEFuVmDr7o",

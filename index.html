@@ -454,6 +454,16 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+
+/* ---------- Acceso de administrador solo en /admin/ ---------- */
+// En la página normal (dominio.lat/) el link "Administrar" queda oculto.
+// Solo aparece — y se abre el login automáticamente — en dominio.lat/admin/
+const ADMIN_ROUTE = /\/admin\/?$/.test(window.location.pathname);
+let authAutoPrompted = false;
+if(!ADMIN_ROUTE){
+  const adminBtnEl = document.getElementById('adminOpenBtn');
+  if(adminBtnEl) adminBtnEl.style.display = 'none';
+}
 const productsCol = collection(db, "productos");
 const categoriesCol = collection(db, "categorias");
 const settingsRef = doc(db, "config", "sitio");
@@ -468,6 +478,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const CART_KEY = "rosaDeBarro_carrito_v1"; // el carrito sigue siendo local a cada visitante
+const SETTINGS_CACHE_KEY = "site_settings_cache_v1"; // evita el "flash" del nombre viejo al cargar
 
 const ICONS = {
   taza: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" fill="none">
@@ -538,6 +549,10 @@ function slugify(s){
 let PRODUCTS = [];
 let CATEGORIES = [];
 let SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+try{
+  const cachedSettings = JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY) || "null");
+  if(cachedSettings) SETTINGS = Object.assign({}, DEFAULT_SETTINGS, cachedSettings);
+}catch(e){ /* caché corrupta, se ignora */ }
 let cart = JSON.parse(localStorage.getItem(CART_KEY) || "{}"); // {productId: qty}
 let currentFilter = "todo";
 let isAdmin = false;
@@ -599,6 +614,7 @@ onSnapshot(settingsRef, async (snap) => {
   if(snap.exists()){
     SETTINGS = Object.assign({}, DEFAULT_SETTINGS, snap.data());
     applySettings();
+    try{ localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(SETTINGS)); }catch(e){ /* si el navegador bloquea localStorage, no pasa nada grave */ }
   }
 }, err => {
   console.error(err);
@@ -806,6 +822,10 @@ function closeAdmin(){ adminOverlay.classList.remove('open'); }
 
 onAuthStateChanged(auth, (user) => {
   isAdmin = !!user;
+  if(ADMIN_ROUTE && !authAutoPrompted){
+    authAutoPrompted = true;
+    if(isAdmin) openAdmin(); else openLogin();
+  }
 });
 
 document.getElementById('adminOpenBtn').addEventListener('click', () => {

@@ -290,10 +290,6 @@
   <section id="catalogo">
     <div class="filters" id="filters">
       <button class="chip active" data-filter="todo">Todo</button>
-      <button class="chip" data-filter="tazas">Tazas</button>
-      <button class="chip" data-filter="cuencos">Cuencos</button>
-      <button class="chip" data-filter="jarrones">Jarrones</button>
-      <button class="chip" data-filter="platos">Platos</button>
     </div>
     <div class="grid" id="grid"></div>
   </section>
@@ -323,11 +319,16 @@
 <div class="modal-overlay" id="loginOverlay">
   <div class="modal">
     <h2>Acceso administrador</h2>
-    <p class="sub">Ingresa la contraseña para editar el catálogo.</p>
+    <p class="sub">Ingresa tu correo y contraseña para editar el catálogo.</p>
+    <div class="field">
+      <label>Correo</label>
+      <input type="email" id="loginEmail" placeholder="tu@correo.com" autocomplete="username">
+    </div>
     <div class="field">
       <label>Contraseña</label>
-      <input type="password" id="loginPass" placeholder="••••••••">
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
     </div>
+    <button class="link-btn" id="forgotPassBtn" style="padding-left:0;">¿Olvidaste tu contraseña?</button>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="loginCancel">Cancelar</button>
       <button class="btn btn-primary" id="loginSubmit">Entrar</button>
@@ -341,11 +342,12 @@
     <h2>Panel de administrador</h2>
     <p class="sub">Edita productos o la apariencia y los datos del sitio. Los cambios se guardan en este navegador.</p>
     <div class="config-note">
-      Este panel guarda los datos localmente (localStorage) para la demo. Cuando conectes Firebase, reemplaza las funciones <code>loadProducts()/saveProducts()</code> y <code>loadSettings()/saveSettings()</code> del script por llamadas a Firestore — el resto del panel funciona igual.
+      Los cambios se guardan en Firestore y se ven al instante para cualquiera que tenga el link abierto. El acceso de administrador usa tu cuenta de Firebase (correo y contraseña) — ya no una clave compartida.
     </div>
 
     <div class="admin-tabs" id="adminTabs">
       <button class="chip active" data-tab="productos">Productos</button>
+      <button class="chip" data-tab="categorias">Categorías</button>
       <button class="chip" data-tab="sitio">Apariencia y datos</button>
     </div>
 
@@ -358,12 +360,7 @@
     <div class="row2">
       <div class="field">
         <label>Categoría</label>
-        <select id="fCat">
-          <option value="tazas">Tazas</option>
-          <option value="cuencos">Cuencos</option>
-          <option value="jarrones">Jarrones</option>
-          <option value="platos">Platos</option>
-        </select>
+        <select id="fCat"></select>
       </div>
       <div class="field">
         <label>Ilustración</label>
@@ -372,6 +369,7 @@
           <option value="cuenco">Cuenco</option>
           <option value="jarron">Jarrón</option>
           <option value="plato">Plato</option>
+          <option value="caja">Genérico</option>
         </select>
       </div>
     </div>
@@ -389,6 +387,16 @@
     <div class="admin-list" id="adminList"></div>
     </div>
 
+    <div id="adminCategoriesSection" style="display:none;">
+      <div class="section-title">Agregar categoría</div>
+      <div class="field"><label>Nombre de la categoría</label><input id="catName" placeholder="Macetas"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="addCategoryBtn">Agregar categoría</button>
+      </div>
+      <div class="section-title">Categorías actuales</div>
+      <div class="admin-list" id="categoryList"></div>
+    </div>
+
     <div id="adminSiteSection" style="display:none;">
       <div class="section-title">Nombre y textos</div>
       <div class="field"><label>Nombre de la tienda</label><input id="sName" placeholder="Rosa de Barro"></div>
@@ -402,9 +410,8 @@
         <input id="sAccent" type="color" style="height:42px; padding:4px; cursor:pointer;">
       </div>
 
-      <div class="section-title">Datos de contacto y acceso</div>
+      <div class="section-title">Datos de contacto</div>
       <div class="field"><label>Número de WhatsApp (solo dígitos, con código de país)</label><input id="sWhatsapp" placeholder="573001234567"></div>
-      <div class="field"><label>Nueva contraseña de administrador (déjalo vacío para no cambiarla)</label><input id="sPassword" type="password" placeholder="••••••••"></div>
 
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveSiteBtn">Guardar cambios del sitio</button>
@@ -413,6 +420,7 @@
     </div>
 
     <div class="modal-actions">
+      <button class="btn btn-danger" id="logoutBtn">Cerrar sesión</button>
       <button class="btn btn-ghost" id="adminCloseBtn">Cerrar panel</button>
     </div>
   </div>
@@ -430,6 +438,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDmZe23G6D6Z2tpM02T8oGVAfEFuVmDr7o",
@@ -442,7 +453,9 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
 const productsCol = collection(db, "productos");
+const categoriesCol = collection(db, "categorias");
 const settingsRef = doc(db, "config", "sitio");
 
 const DEFAULT_SETTINGS = {
@@ -451,8 +464,7 @@ const DEFAULT_SETTINGS = {
   heroSubtitle: "Trabajamos gres y arcilla roja en un solo torno, en lotes pequeños, con esmaltes en tonos suaves. Cada pieza sale del horno con su propia huella: por eso ninguna es exactamente igual a otra.",
   footerText: "Rosa de Barro — catálogo de demostración.",
   accentColor: "#D9749A",
-  whatsappNumber: "573000000000", // TODO: tu número real, solo dígitos con código de país, sin + ni espacios
-  adminPassword: "admin123"       // TODO: cámbiala antes de compartir el link públicamente
+  whatsappNumber: "573000000000" // TODO: tu número real, solo dígitos con código de país, sin + ni espacios
 };
 
 const CART_KEY = "rosaDeBarro_carrito_v1"; // el carrito sigue siendo local a cada visitante
@@ -476,6 +488,11 @@ const ICONS = {
   plato: `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg" fill="none">
     <ellipse cx="75" cy="45" rx="65" ry="20" stroke="var(--clay)" stroke-width="2.5"/>
     <ellipse cx="75" cy="45" rx="35" ry="10" stroke="var(--moss)" stroke-width="1.6"/>
+  </svg>`,
+  caja: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <path d="M20 35 L60 15 L100 35 L100 75 L60 95 L20 75 Z" stroke="var(--clay)" stroke-width="2.5"/>
+    <path d="M20 35 L60 55 L100 35" stroke="var(--moss)" stroke-width="2"/>
+    <path d="M60 55 L60 95" stroke="var(--moss)" stroke-width="2"/>
   </svg>`
 };
 
@@ -496,6 +513,13 @@ const DEFAULT_PRODUCTS = [
   {id:"p14", cat:"platos", icon:"plato", name:"Plato Postre Salvia", desc:"Tamaño pequeño, esmalte verde salvia en el centro.", price:45000, stock:11, material:"Gres"}
 ];
 
+const DEFAULT_CATEGORIES = [
+  {id:"tazas", name:"Tazas"},
+  {id:"cuencos", name:"Cuencos"},
+  {id:"jarrones", name:"Jarrones"},
+  {id:"platos", name:"Platos"}
+];
+
 /* ---------- Capa de datos: Firestore en tiempo real ---------- */
 function shade(hex, percent){
   const n = parseInt(hex.replace('#',''), 16);
@@ -506,12 +530,19 @@ function shade(hex, percent){
   return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
 }
 
+function slugify(s){
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
 let PRODUCTS = [];
+let CATEGORIES = [];
 let SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
 let cart = JSON.parse(localStorage.getItem(CART_KEY) || "{}"); // {productId: qty}
 let currentFilter = "todo";
 let isAdmin = false;
 let productsLoaded = false;
+let categoriesLoaded = false;
 
 async function seedDefaultProducts(){
   await Promise.all(DEFAULT_PRODUCTS.map(p => {
@@ -535,6 +566,27 @@ onSnapshot(productsCol, async (snap) => {
 }, err => {
   console.error(err);
   showToast("No se pudo conectar con la base de datos");
+});
+
+async function seedDefaultCategories(){
+  await Promise.all(DEFAULT_CATEGORIES.map(c => setDoc(doc(db, "categorias", c.id), { name: c.name })));
+}
+
+let seededCategories = false;
+onSnapshot(categoriesCol, async (snap) => {
+  if(snap.empty && !seededCategories){
+    seededCategories = true;
+    await seedDefaultCategories();
+    return;
+  }
+  CATEGORIES = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  categoriesLoaded = true;
+  renderFilters();
+  populateCategorySelect();
+  if(adminOverlay && adminOverlay.classList.contains('open')) renderCategoryList();
+}, err => {
+  console.error(err);
+  showToast("No se pudieron cargar las categorías");
 });
 
 let seededSettings = false;
@@ -583,7 +635,7 @@ function renderGrid(){
   }
   grid.innerHTML = list.map(p => `
     <div class="card">
-      <div class="art">${ICONS[p.icon] || ICONS.taza}</div>
+      <div class="art">${ICONS[p.icon] || ICONS.caja}</div>
       <div class="tag">${p.material}</div>
       <h3>${p.name}</h3>
       <div class="desc">${p.desc}</div>
@@ -593,6 +645,24 @@ function renderGrid(){
       </div>
     </div>
   `).join('');
+}
+
+function renderFilters(){
+  const filtersEl = document.getElementById('filters');
+  const chips = ['<button class="chip' + (currentFilter==='todo'?' active':'') + '" data-filter="todo">Todo</button>']
+    .concat(CATEGORIES.map(c => `<button class="chip${currentFilter===c.id?' active':''}" data-filter="${c.id}">${c.name}</button>`));
+  filtersEl.innerHTML = chips.join('');
+  if(currentFilter !== 'todo' && !CATEGORIES.some(c => c.id === currentFilter)){
+    currentFilter = 'todo';
+    filtersEl.querySelector('.chip[data-filter="todo"]').classList.add('active');
+  }
+}
+
+function populateCategorySelect(){
+  const sel = document.getElementById('fCat');
+  const current = sel.value;
+  sel.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if(CATEGORIES.some(c => c.id === current)) sel.value = current;
 }
 
 grid.addEventListener('click', e => {
@@ -608,7 +678,7 @@ grid.addEventListener('click', e => {
 document.getElementById('filters').addEventListener('click', e => {
   const btn = e.target.closest('.chip');
   if(!btn) return;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#filters .chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   currentFilter = btn.dataset.filter;
   renderGrid();
@@ -638,7 +708,7 @@ function renderCart(){
   } else {
     cartBody.innerHTML = items.map(({product,qty}) => `
       <div class="cart-item" data-id="${product.id}">
-        <div class="art">${ICONS[product.icon] || ICONS.taza}</div>
+        <div class="art">${ICONS[product.icon] || ICONS.caja}</div>
         <div class="info">
           <h4>${product.name}</h4>
           <div class="p">${fmt(product.price)}</div>
@@ -711,21 +781,32 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   else { root.setAttribute('data-theme','dark'); }
 });
 
-/* ---------- Login admin ---------- */
+/* ---------- Login admin (Firebase Authentication) ---------- */
 const loginOverlay = document.getElementById('loginOverlay');
 const adminOverlay = document.getElementById('adminOverlay');
-function openLogin(){ loginOverlay.classList.add('open'); document.getElementById('loginPass').value=''; document.getElementById('loginPass').focus(); }
+function openLogin(){
+  loginOverlay.classList.add('open');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginEmail').focus();
+}
 function closeLogin(){ loginOverlay.classList.remove('open'); }
 function openAdmin(){
   adminOverlay.classList.add('open');
   endEditProduct();
   renderAdminList();
+  renderCategoryList();
   document.querySelectorAll('#adminTabs .chip').forEach(c => c.classList.remove('active'));
   document.querySelector('#adminTabs .chip[data-tab="productos"]').classList.add('active');
   document.getElementById('adminProductsSection').style.display = 'block';
+  document.getElementById('adminCategoriesSection').style.display = 'none';
   document.getElementById('adminSiteSection').style.display = 'none';
 }
 function closeAdmin(){ adminOverlay.classList.remove('open'); }
+
+onAuthStateChanged(auth, (user) => {
+  isAdmin = !!user;
+});
 
 document.getElementById('adminOpenBtn').addEventListener('click', () => {
   if(isAdmin){ openAdmin(); } else { openLogin(); }
@@ -734,16 +815,40 @@ document.getElementById('loginCancel').addEventListener('click', closeLogin);
 document.getElementById('loginSubmit').addEventListener('click', tryLogin);
 document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') tryLogin(); });
 
-function tryLogin(){
-  const val = document.getElementById('loginPass').value;
-  if(val === SETTINGS.adminPassword){
+async function tryLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if(!email || !pass){ showToast("Escribe tu correo y contraseña"); return; }
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
     isAdmin = true;
     closeLogin();
     openAdmin();
-  } else {
-    showToast("Contraseña incorrecta");
+  } catch(err){
+    console.error(err);
+    showToast("Correo o contraseña incorrectos");
   }
 }
+
+document.getElementById('forgotPassBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  if(!email){ showToast("Escribe tu correo primero"); return; }
+  try{
+    await sendPasswordResetEmail(auth, email);
+    showToast("Te enviamos un correo para restablecer tu contraseña");
+  } catch(err){
+    console.error(err);
+    showToast("No se pudo enviar el correo. Revisa que esté bien escrito.");
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  isAdmin = false;
+  closeAdmin();
+  showToast("Sesión cerrada");
+});
+
 document.getElementById('adminCloseBtn').addEventListener('click', closeAdmin);
 
 /* ---------- Panel admin: pestañas ---------- */
@@ -754,8 +859,70 @@ document.getElementById('adminTabs').addEventListener('click', e => {
   btn.classList.add('active');
   const tab = btn.dataset.tab;
   document.getElementById('adminProductsSection').style.display = tab === 'productos' ? 'block' : 'none';
+  document.getElementById('adminCategoriesSection').style.display = tab === 'categorias' ? 'block' : 'none';
   document.getElementById('adminSiteSection').style.display = tab === 'sitio' ? 'block' : 'none';
   if(tab === 'sitio') fillSiteForm();
+});
+
+/* ---------- Panel admin: categorías ---------- */
+function renderCategoryList(){
+  const list = document.getElementById('categoryList');
+  if(!list) return;
+  if(CATEGORIES.length === 0){
+    list.innerHTML = `<div style="color:var(--ink-soft); font-size:13.5px; padding:14px 0;">Todavía no hay categorías.</div>`;
+    return;
+  }
+  list.innerHTML = CATEGORIES.map(c => `
+    <div class="admin-row" data-id="${c.id}">
+      <div class="info"><h4>${c.name}</h4></div>
+      <div class="actions">
+        <button class="icon-sm del-category" data-confirm="0" title="Eliminar">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('categoryList').addEventListener('click', async e => {
+  const row = e.target.closest('.admin-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  const delBtn = e.target.closest('.del-category');
+  if(!delBtn) return;
+  if(delBtn.dataset.confirm === '1'){
+    try{
+      await deleteDoc(doc(db, "categorias", id));
+      showToast("Categoría eliminada");
+    }catch(err){
+      console.error(err);
+      showToast("No se pudo eliminar (revisa las reglas de Firestore)");
+    }
+  } else {
+    delBtn.dataset.confirm = '1';
+    delBtn.textContent = '✔';
+    delBtn.title = 'Clic de nuevo para confirmar';
+    setTimeout(() => {
+      if(delBtn.isConnected){
+        delBtn.dataset.confirm = '0';
+        delBtn.textContent = '✕';
+        delBtn.title = 'Eliminar';
+      }
+    }, 3000);
+  }
+});
+
+document.getElementById('addCategoryBtn').addEventListener('click', async () => {
+  const name = document.getElementById('catName').value.trim();
+  if(!name){ showToast("Escribe un nombre de categoría"); return; }
+  const id = slugify(name);
+  if(!id){ showToast("Ese nombre no es válido"); return; }
+  try{
+    await setDoc(doc(db, "categorias", id), { name });
+    document.getElementById('catName').value = '';
+    showToast("Categoría agregada");
+  }catch(err){
+    console.error(err);
+    showToast("No se pudo agregar (revisa las reglas de Firestore)");
+  }
 });
 
 function fillSiteForm(){
@@ -765,7 +932,6 @@ function fillSiteForm(){
   document.getElementById('sFooter').value = SETTINGS.footerText;
   document.getElementById('sAccent').value = SETTINGS.accentColor;
   document.getElementById('sWhatsapp').value = SETTINGS.whatsappNumber;
-  document.getElementById('sPassword').value = '';
 }
 
 document.getElementById('saveSiteBtn').addEventListener('click', async () => {
@@ -777,8 +943,6 @@ document.getElementById('saveSiteBtn').addEventListener('click', async () => {
     accentColor: document.getElementById('sAccent').value || DEFAULT_SETTINGS.accentColor,
     whatsappNumber: document.getElementById('sWhatsapp').value.trim().replace(/[^\d]/g,'') || DEFAULT_SETTINGS.whatsappNumber
   };
-  const newPass = document.getElementById('sPassword').value;
-  if(newPass) patch.adminPassword = newPass;
   try{
     await setDoc(settingsRef, patch, { merge:true });
     showToast("Cambios del sitio guardados");
@@ -793,9 +957,8 @@ resetSiteBtn.addEventListener('click', async () => {
   if(resetSiteBtn.dataset.confirm === '1'){
     resetSiteBtn.dataset.confirm = '0';
     resetSiteBtn.textContent = 'Restablecer valores por defecto';
-    const keepPassword = SETTINGS.adminPassword;
     try{
-      await setDoc(settingsRef, Object.assign({}, DEFAULT_SETTINGS, { adminPassword: keepPassword }));
+      await setDoc(settingsRef, DEFAULT_SETTINGS);
       fillSiteForm();
       showToast("Valores por defecto restablecidos");
     }catch(err){
@@ -819,19 +982,22 @@ function renderAdminList(){
     list.innerHTML = `<div style="color:var(--ink-soft); font-size:13.5px; padding:14px 0;">Todavía no hay productos.</div>`;
     return;
   }
-  list.innerHTML = PRODUCTS.map(p => `
+  list.innerHTML = PRODUCTS.map(p => {
+    const catName = (CATEGORIES.find(c => c.id === p.cat) || {}).name || p.cat;
+    return `
     <div class="admin-row" data-id="${p.id}">
-      <div class="art">${ICONS[p.icon] || ICONS.taza}</div>
+      <div class="art">${ICONS[p.icon] || ICONS.caja}</div>
       <div class="info">
         <h4>${p.name}</h4>
-        <div class="p">${fmt(p.price)} · ${p.stock} disp. · ${p.cat}</div>
+        <div class="p">${fmt(p.price)} · ${p.stock} disp. · ${catName}</div>
       </div>
       <div class="actions">
         <button class="icon-sm edit-product" title="Editar">✎</button>
         <button class="icon-sm del-product" data-confirm="0" title="Eliminar">✕</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 document.getElementById('adminList').addEventListener('click', async e => {
@@ -896,7 +1062,7 @@ function startEditProduct(product){
 function endEditProduct(){
   editingId = null;
   productFields.forEach(fid => document.getElementById(fid).value = '');
-  document.getElementById('fCat').value = 'tazas';
+  if(CATEGORIES.length) document.getElementById('fCat').value = CATEGORIES[0].id;
   document.getElementById('fIcon').value = 'taza';
   document.getElementById('productFormTitle').textContent = 'Agregar producto';
   document.getElementById('addProductBtn').textContent = 'Agregar al catálogo';

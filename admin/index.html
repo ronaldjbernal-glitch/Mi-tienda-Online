@@ -117,6 +117,12 @@
   .hero .meta{ margin-top:26px; display:flex; gap:26px; flex-wrap:wrap; }
   .hero .meta div{ font-size:13.5px; color:var(--ink-soft); }
   .hero .meta strong{ display:block; font-family:'Fraunces', serif; font-size:24px; color:var(--ink); font-weight:500; }
+  #onlineWrap strong::before{
+    content:""; display:inline-block; width:9px; height:9px; border-radius:50%;
+    background:#3FC96B; margin-right:6px; vertical-align:middle;
+    animation:pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
   .hero-art{ display:flex; align-items:center; justify-content:center; }
   .hero-art svg{ width:100%; max-width:340px; height:auto; }
 
@@ -138,6 +144,9 @@
   .card .art:hover::after{
     content:"🔍"; position:absolute; bottom:4px; right:4px; font-size:13px; opacity:.7;
   }
+  .stock-line{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; }
+  .stock-line.low{ color:var(--danger); font-weight:600; }
+  .stock-line.out{ color:var(--ink-soft); }
   .card .art svg{ height:110px; width:auto; }
   .card .art img{ width:100%; height:100%; object-fit:cover; border-radius:12px; }
   .card .tag{ font-size:12.5px; color:var(--moss); margin-bottom:6px; }
@@ -348,6 +357,7 @@
         <div><strong id="metaCount">0</strong>productos en catálogo</div>
         <div><strong>100%</strong>envíos a todo Bogotá</div>
         <div><strong>♥</strong>calidad a bajo precio</div>
+        <div id="onlineWrap" style="display:none;"><strong id="onlineCount">0</strong>viendo esto ahora</div>
       </div>
     </div>
     <div class="hero-art">
@@ -541,7 +551,7 @@
 ====================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy
+  getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut
@@ -573,6 +583,7 @@ const productsCol = collection(db, "productos");
 const categoriesCol = collection(db, "categorias");
 const ordersCol = collection(db, "pedidos");
 const settingsRef = doc(db, "config", "sitio");
+const presenceCol = collection(db, "presencia");
 
 const DEFAULT_SETTINGS = {
   brandName: "Luna Arcoiris",
@@ -619,18 +630,12 @@ const ICONS = {
 };
 
 const DEFAULT_PRODUCTS = [
-  {id:"p1", cat:"pijamas", icon:"pijama", name:"Pijama Luna", desc:"Set de dos piezas en algodón suave, estampado de lunas y manga corta.", price:45000, stock:10, material:"Algodón"},
-  {id:"p2", cat:"pijamas", icon:"pijama", name:"Pijama Arcoíris", desc:"Camiseta y short a juego, tela fresca ideal para dormir en clima cálido.", price:42000, stock:8, material:"Algodón"},
-  {id:"p3", cat:"pijamas", icon:"pijama", name:"Pijama Estrellas", desc:"Manga larga y pantalón, franela suave para las noches frías de Bogotá.", price:52000, stock:6, material:"Franela"},
-  {id:"p4", cat:"pijamas", icon:"pijama", name:"Pijama Básica Lila", desc:"Diseño sencillo en color sólido, corte cómodo unisex.", price:38000, stock:12, material:"Algodón"},
-  {id:"p5", cat:"zapatos", icon:"zapato", name:"Tenis Urbano Blanco", desc:"Suela liviana y agarre firme, combina con cualquier outfit.", price:89000, stock:7, material:"Sintético"},
-  {id:"p6", cat:"zapatos", icon:"zapato", name:"Sandalia Verano", desc:"Plantilla acolchada y correa ajustable, ideal para el día a día.", price:56000, stock:9, material:"Cuero sintético"},
-  {id:"p7", cat:"zapatos", icon:"zapato", name:"Botín Casual Negro", desc:"Corte al tobillo, suela antideslizante, para looks casuales o de oficina.", price:98000, stock:4, material:"Cuero sintético"},
-  {id:"p8", cat:"zapatos", icon:"zapato", name:"Tenis Deportivo Gris", desc:"Malla transpirable, amortiguación media, pensado para uso diario.", price:82000, stock:6, material:"Malla y goma"},
-  {id:"p9", cat:"maquillaje", icon:"maquillaje", name:"Paleta de Sombras Sunset", desc:"12 tonos mate y shimmer en tonos cálidos, larga duración.", price:48000, stock:11, material:"Sombras"},
-  {id:"p10", cat:"maquillaje", icon:"maquillaje", name:"Labial Mate Rosa Nude", desc:"Fórmula liviana de larga duración, no reseca los labios.", price:22000, stock:15, material:"Labial"},
-  {id:"p11", cat:"maquillaje", icon:"maquillaje", name:"Base Líquida Natural", desc:"Cobertura media buildable, acabado natural para todo tipo de piel.", price:39000, stock:8, material:"Base líquida"},
-  {id:"p12", cat:"maquillaje", icon:"maquillaje", name:"Set de Brochas x5", desc:"Cerdas suaves para base, rubor y sombras, incluye estuche.", price:35000, stock:9, material:"Brochas"}
+  {id:"p1", cat:"pijamas", icon:"pijama", name:"Pijama Ejemplo 1", desc:"Set de dos piezas en tela suave, ideal para dormir cómodo.", price:45000, stock:10, material:"Algodón"},
+  {id:"p2", cat:"pijamas", icon:"pijama", name:"Pijama Ejemplo 2", desc:"Manga larga y pantalón, buena opción para clima frío.", price:52000, stock:6, material:"Franela"},
+  {id:"p3", cat:"zapatos", icon:"zapato", name:"Zapato Ejemplo 1", desc:"Suela liviana y cómoda, combina con cualquier outfit.", price:89000, stock:7, material:"Sintético"},
+  {id:"p4", cat:"zapatos", icon:"zapato", name:"Zapato Ejemplo 2", desc:"Diseño casual para uso diario, buena resistencia.", price:82000, stock:4, material:"Malla y goma"},
+  {id:"p5", cat:"maquillaje", icon:"maquillaje", name:"Maquillaje Ejemplo 1", desc:"Producto de larga duración, fácil de aplicar.", price:38000, stock:11, material:"Cosmético"},
+  {id:"p6", cat:"maquillaje", icon:"maquillaje", name:"Maquillaje Ejemplo 2", desc:"Acabado natural, apto para uso diario.", price:29000, stock:9, material:"Cosmético"}
 ];
 
 const DEFAULT_CATEGORIES = [
@@ -780,6 +785,7 @@ function renderGrid(){
       <div class="tag">${p.material}</div>
       <h3>${p.name}</h3>
       <div class="desc">${p.desc}</div>
+      <div class="stock-line ${p.stock<=0?'out':(p.stock<=3?'low':'')}">${p.stock<=0 ? 'Agotado' : (p.stock<=3 ? `¡Solo quedan ${p.stock}!` : `${p.stock} disponibles`)}</div>
       <div class="foot">
         <span class="price">${fmt(p.price)}</span>
         <button class="add-btn" data-id="${p.id}" ${p.stock<=0?'disabled':''}>${p.stock<=0?'Agotado':'Agregar'}</button>
@@ -827,7 +833,7 @@ grid.addEventListener('click', e => {
 function openLightbox(p){
   document.getElementById('lightboxVisual').innerHTML = productVisual(p);
   document.getElementById('lightboxName').textContent = p.name;
-  document.getElementById('lightboxPrice').textContent = fmt(p.price);
+  document.getElementById('lightboxPrice').textContent = fmt(p.price) + (p.stock>0 ? ` · ${p.stock} disponibles` : ' · Agotado');
   document.getElementById('lightboxOverlay').classList.add('open');
 }
 function closeLightbox(){
@@ -1513,6 +1519,59 @@ document.getElementById('addProductBtn').addEventListener('click', async () => {
     addBtn.disabled = false;
   }
 });
+
+/* ---------- Visitantes en línea ---------- */
+// Esto es totalmente automático y silencioso: NO le pregunta nada al cliente,
+// no muestra ningún aviso ni ventana. Mientras el cliente tenga la página
+// abierta, el navegador avisa solo (en segundo plano) cada ~20s que sigue
+// ahí. Si cierra la pestaña o la deja inactiva más de 45s, deja de contar
+// como "en línea" automáticamente. Requiere que las reglas de Firestore
+// permitan crear/actualizar documentos en /presencia/{id} (paso único que
+// hace el dueño del sitio en la consola de Firebase, no el cliente).
+const ONLINE_WINDOW_MS = 45000;
+const HEARTBEAT_MS = 20000;
+const sessionId = (() => {
+  let sid = sessionStorage.getItem('lunaArcoirisSessionId');
+  if(!sid){
+    sid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+    sessionStorage.setItem('lunaArcoirisSessionId', sid);
+  }
+  return sid;
+})();
+let presenceDocs = {};
+
+async function sendHeartbeat(){
+  try{
+    await setDoc(doc(db, "presencia", sessionId), { lastSeen: serverTimestamp() });
+  }catch(err){ /* si las reglas no lo permiten, el contador simplemente no se mostrará */ }
+}
+sendHeartbeat();
+setInterval(sendHeartbeat, HEARTBEAT_MS);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') sendHeartbeat(); });
+window.addEventListener('beforeunload', () => { try{ deleteDoc(doc(db, "presencia", sessionId)); }catch(err){} });
+
+function updateOnlineCount(){
+  const now = Date.now();
+  let count = 0;
+  Object.values(presenceDocs).forEach(ts => { if(ts && (now - ts) < ONLINE_WINDOW_MS) count++; });
+  const el = document.getElementById('onlineCount');
+  if(!el) return;
+  if(count <= 0){ el.parentElement.style.display = 'none'; return; }
+  el.parentElement.style.display = '';
+  el.textContent = count;
+}
+try{
+  onSnapshot(presenceCol, snap => {
+    presenceDocs = {};
+    snap.forEach(d => {
+      const data = d.data();
+      const ts = data.lastSeen && data.lastSeen.toMillis ? data.lastSeen.toMillis() : null;
+      if(ts) presenceDocs[d.id] = ts;
+    });
+    updateOnlineCount();
+  });
+}catch(err){ /* colección no disponible aún */ }
+setInterval(updateOnlineCount, 10000);
 
 /* ---------- Init ---------- */
 applySettings();

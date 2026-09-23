@@ -134,7 +134,10 @@
   @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:560px){ .grid{grid-template-columns:1fr;} }
   .card{ background:var(--card); padding:28px 24px 24px; display:flex; flex-direction:column; transition:background .2s ease; }
-  .card .art{ height:140px; display:flex; align-items:center; justify-content:center; margin-bottom:18px; }
+  .card .art{ height:140px; display:flex; align-items:center; justify-content:center; margin-bottom:18px; cursor:zoom-in; position:relative; }
+  .card .art:hover::after{
+    content:"🔍"; position:absolute; bottom:4px; right:4px; font-size:13px; opacity:.7;
+  }
   .card .art svg{ height:110px; width:auto; }
   .card .art img{ width:100%; height:100%; object-fit:cover; border-radius:12px; }
   .card .tag{ font-size:12.5px; color:var(--moss); margin-bottom:6px; }
@@ -224,6 +227,37 @@
   .btn-danger{ background:transparent; border:1px solid var(--danger); color:var(--danger); }
   .btn-danger:hover{ background:var(--danger); color:#fff; }
   .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+
+  #adminOverlay .modal{
+    width:min(900px, 96vw);
+    max-height:92vh;
+    padding:32px 36px;
+  }
+  #adminOverlay .row2{ grid-template-columns:1fr 1fr; }
+  @media (max-width: 640px){
+    #adminOverlay .modal{ padding:22px 18px; }
+  }
+
+  /* ---------- Lightbox (ampliar imagen del producto) ---------- */
+  .lightbox-overlay{
+    position:fixed; inset:0; background:rgba(15,10,25,.55); z-index:80;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .lightbox-overlay.open{ display:flex; }
+  .lightbox-box{
+    background:var(--card); border-radius:20px; padding:22px; max-width:min(520px, 100%);
+    width:100%; text-align:center; position:relative;
+  }
+  .lightbox-close{
+    position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer; font-size:15px;
+  }
+  .lightbox-close:hover{ border-color:var(--clay); color:var(--clay); }
+  .lightbox-visual{ display:flex; align-items:center; justify-content:center; min-height:260px; }
+  .lightbox-visual img{ max-width:100%; max-height:60vh; border-radius:14px; object-fit:contain; }
+  .lightbox-visual svg{ width:100%; max-width:280px; height:auto; }
+  .lightbox-name{ font-family:'Fraunces', serif; font-size:19px; margin-top:16px; }
+  .lightbox-price{ color:var(--clay-deep); font-size:16px; margin-top:4px; }
 
   .admin-list{ margin-top:22px; }
   .admin-row{
@@ -391,8 +425,8 @@
     <div id="adminProductsSection">
     <div class="section-title" id="productFormTitle">Agregar producto</div>
     <div class="row2">
-      <div class="field"><label>Nombre</label><input id="fName" placeholder="Taza Alba"></div>
-      <div class="field"><label>Precio (COP)</label><input id="fPrice" type="number" placeholder="68000"></div>
+      <div class="field"><label>Nombre</label><input id="fName" placeholder="Pijama Luna"></div>
+      <div class="field"><label>Precio (COP)</label><input id="fPrice" type="number" placeholder="45000"></div>
     </div>
     <div class="field">
       <label>Foto del producto (PNG, JPG o WEBP — opcional, se comprime automáticamente)</label>
@@ -410,19 +444,18 @@
       <div class="field">
         <label>Ilustración (si no subes foto)</label>
         <select id="fIcon">
-          <option value="taza">Taza</option>
-          <option value="cuenco">Cuenco</option>
-          <option value="jarron">Jarrón</option>
-          <option value="plato">Plato</option>
+          <option value="pijama">Pijama</option>
+          <option value="zapato">Zapato</option>
+          <option value="maquillaje">Maquillaje</option>
           <option value="caja">Genérico</option>
         </select>
       </div>
     </div>
     <div class="row2">
-      <div class="field"><label>Material</label><input id="fMaterial" placeholder="Gres"></div>
-      <div class="field"><label>Existencias</label><input id="fStock" type="number" placeholder="6"></div>
+      <div class="field"><label>Material</label><input id="fMaterial" placeholder="Algodón"></div>
+      <div class="field"><label>Existencias</label><input id="fStock" type="number" placeholder="10"></div>
     </div>
-    <div class="field"><label>Descripción</label><textarea id="fDesc" placeholder="Gres blanco con borde en crudo..."></textarea></div>
+    <div class="field"><label>Descripción</label><textarea id="fDesc" placeholder="Set de dos piezas en algodón suave..."></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelEditBtn" style="display:none;">Cancelar edición</button>
       <button class="btn btn-primary" id="addProductBtn">Agregar al catálogo</button>
@@ -434,7 +467,7 @@
 
     <div id="adminCategoriesSection" style="display:none;">
       <div class="section-title">Agregar categoría</div>
-      <div class="field"><label>Nombre de la categoría</label><input id="catName" placeholder="Macetas"></div>
+      <div class="field"><label>Nombre de la categoría</label><input id="catName" placeholder="Accesorios"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="addCategoryBtn">Agregar categoría</button>
       </div>
@@ -463,8 +496,8 @@
     <div id="adminSiteSection" style="display:none;">
       <div class="section-title">Nombre y textos</div>
       <div class="field"><label>Nombre de la tienda</label><input id="sName" placeholder="Luna Arcoiris"></div>
-      <div class="field"><label>Título del hero</label><textarea id="sHeroTitle" placeholder="Piezas hechas a mano, una por una."></textarea></div>
-      <div class="field"><label>Descripción del hero</label><textarea id="sHeroSub" placeholder="Trabajamos gres y arcilla roja..."></textarea></div>
+      <div class="field"><label>Título del hero</label><textarea id="sHeroTitle" placeholder="Calidad a un buen precio, para ti."></textarea></div>
+      <div class="field"><label>Descripción del hero</label><textarea id="sHeroSub" placeholder="Pijamas, zapatos, maquillaje y mucho más..."></textarea></div>
       <div class="field"><label>Texto del pie de página</label><input id="sFooter" placeholder="Luna Arcoiris — tu tienda virtual de confianza."></div>
 
       <div class="section-title">Apariencia</div>
@@ -486,6 +519,15 @@
       <button class="btn btn-danger" id="logoutBtn">Cerrar sesión</button>
       <button class="btn btn-ghost" id="adminCloseBtn">Cerrar panel</button>
     </div>
+  </div>
+</div>
+
+<div class="lightbox-overlay" id="lightboxOverlay">
+  <div class="lightbox-box">
+    <button class="lightbox-close" id="lightboxCloseBtn">✕</button>
+    <div class="lightbox-visual" id="lightboxVisual"></div>
+    <div class="lightbox-name" id="lightboxName"></div>
+    <div class="lightbox-price" id="lightboxPrice"></div>
   </div>
 </div>
 
@@ -541,28 +583,33 @@ const DEFAULT_SETTINGS = {
   whatsappNumber: "573000000000" // TODO: tu número real, solo dígitos con código de país, sin + ni espacios
 };
 
-const CART_KEY = "rosaDeBarro_carrito_v1"; // el carrito sigue siendo local a cada visitante
+const CART_KEY = "lunaArcoiris_carrito_v1"; // el carrito sigue siendo local a cada visitante
 const SETTINGS_CACHE_KEY = "site_settings_cache_v1"; // evita el "flash" del nombre viejo al cargar
 
 const ICONS = {
-  taza: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" fill="none">
-    <path d="M20 30 L24 78 C24 86 96 86 96 78 L100 30 Z" stroke="var(--clay)" stroke-width="2.5"/>
-    <ellipse cx="60" cy="30" rx="40" ry="7" stroke="var(--clay)" stroke-width="2.5"/>
-    <path d="M100 42 C118 42 118 68 100 68" stroke="var(--moss)" stroke-width="2.5"/>
+  pijama: `<svg viewBox="0 0 130 150" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <path d="M50 18 L65 30 L80 18" stroke="var(--clay)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M35 25 L20 45 L28 56 L35 49 L35 92 L95 92 L95 49 L102 56 L110 45 L95 25 L80 18 L65 32 L50 18 Z" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M65 34 L65 88" stroke="var(--moss)" stroke-width="2" stroke-dasharray="3 4"/>
+    <path d="M40 98 L40 138 L55 138 L62.5 112 L70 138 L85 138 L85 98 Z" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M40 98 L85 98" stroke="var(--moss)" stroke-width="2"/>
   </svg>`,
-  cuenco: `<svg viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" fill="none">
-    <path d="M15 30 C15 30 20 75 70 75 C120 75 125 30 125 30" stroke="var(--clay)" stroke-width="2.5"/>
-    <ellipse cx="70" cy="30" rx="55" ry="10" stroke="var(--clay)" stroke-width="2.5"/>
-    <ellipse cx="70" cy="30" rx="30" ry="5" stroke="var(--moss)" stroke-width="1.6"/>
+  zapato: `<svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <path d="M16 66 C16 48 26 38 44 34 L58 21 C65 15 76 15 82 20 L97 33 C119 35 141 41 146 55 C149 63 146 70 136 70 L24 70 C18 70 16 69 16 66 Z" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M58 33 L98 33" stroke="var(--moss)" stroke-width="2"/>
+    <path d="M68 25 L76 34" stroke="var(--moss)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M84 25 L92 34" stroke="var(--moss)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M16 66 L146 66" stroke="var(--clay)" stroke-width="2.5"/>
   </svg>`,
-  jarron: `<svg viewBox="0 0 110 150" xmlns="http://www.w3.org/2000/svg" fill="none">
-    <path d="M42 15 L68 15 L72 45 C90 65 90 110 78 130 C66 145 44 145 32 130 C20 110 20 65 38 45 Z" stroke="var(--clay)" stroke-width="2.5"/>
-    <ellipse cx="55" cy="15" rx="13" ry="4" stroke="var(--clay)" stroke-width="2.5"/>
-    <path d="M35 70 C45 76 65 76 75 70" stroke="var(--moss)" stroke-width="2"/>
-  </svg>`,
-  plato: `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg" fill="none">
-    <ellipse cx="75" cy="45" rx="65" ry="20" stroke="var(--clay)" stroke-width="2.5"/>
-    <ellipse cx="75" cy="45" rx="35" ry="10" stroke="var(--moss)" stroke-width="1.6"/>
+  maquillaje: `<svg viewBox="0 0 150 110" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <rect x="16" y="22" width="86" height="60" rx="12" stroke="var(--clay)" stroke-width="2.5"/>
+    <circle cx="37" cy="42" r="7.5" stroke="var(--moss)" stroke-width="1.8"/>
+    <circle cx="59" cy="42" r="7.5" stroke="var(--moss)" stroke-width="1.8"/>
+    <circle cx="81" cy="42" r="7.5" stroke="var(--moss)" stroke-width="1.8"/>
+    <circle cx="48" cy="64" r="7.5" stroke="var(--moss)" stroke-width="1.8"/>
+    <circle cx="70" cy="64" r="7.5" stroke="var(--moss)" stroke-width="1.8"/>
+    <path d="M112 24 L136 13 L142 24 L120 39 Z" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M120 39 L109 60" stroke="var(--clay)" stroke-width="2.5" stroke-linecap="round"/>
   </svg>`,
   caja: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" fill="none">
     <path d="M20 35 L60 15 L100 35 L100 75 L60 95 L20 75 Z" stroke="var(--clay)" stroke-width="2.5"/>
@@ -572,27 +619,24 @@ const ICONS = {
 };
 
 const DEFAULT_PRODUCTS = [
-  {id:"p1", cat:"tazas", icon:"taza", name:"Taza Alba", desc:"Gres blanco con borde en crudo, asa gruesa para agarre firme.", price:68000, stock:6, material:"Gres"},
-  {id:"p2", cat:"tazas", icon:"taza", name:"Taza Ceniza", desc:"Esmalte rosado pálido con veta natural visible en la base.", price:68000, stock:3, material:"Gres"},
-  {id:"p3", cat:"tazas", icon:"taza", name:"Taza Ocre", desc:"Arcilla roja sin esmaltar por fuera, esmalte rosa por dentro.", price:72000, stock:9, material:"Arcilla roja"},
-  {id:"p4", cat:"tazas", icon:"taza", name:"Taza Musgo", desc:"Esmalte verde salvia mate, acabado ligeramente rugoso.", price:70000, stock:5, material:"Gres"},
-  {id:"p5", cat:"cuencos", icon:"cuenco", name:"Cuenco Llano", desc:"Ideal para ensaladas o fruta, base ancha y estable.", price:95000, stock:7, material:"Gres"},
-  {id:"p6", cat:"cuencos", icon:"cuenco", name:"Cuenco Hondo Rosa", desc:"Para sopas y caldos, esmalte rosa empolvado por dentro.", price:88000, stock:4, material:"Arcilla roja"},
-  {id:"p7", cat:"cuencos", icon:"cuenco", name:"Cuenco Mini", desc:"Tamaño para salsas o aceite, se apila fácilmente.", price:42000, stock:12, material:"Gres"},
-  {id:"p8", cat:"cuencos", icon:"cuenco", name:"Cuenco Arena", desc:"Esmalte beige rosado mate con textura de grano fino.", price:90000, stock:6, material:"Gres"},
-  {id:"p9", cat:"jarrones", icon:"jarron", name:"Jarrón Alto Crudo", desc:"Silueta esbelta sin esmaltar, superficie porosa al tacto.", price:145000, stock:2, material:"Gres"},
-  {id:"p10", cat:"jarrones", icon:"jarron", name:"Jarrón Bajo Salvia", desc:"Cuerpo redondeado, cuello corto, esmalte verde salvia.", price:130000, stock:3, material:"Gres"},
-  {id:"p11", cat:"jarrones", icon:"jarron", name:"Jarrón Ánfora Rosa", desc:"Forma clásica de ánfora en miniatura, dos asas laterales.", price:160000, stock:1, material:"Arcilla roja"},
-  {id:"p12", cat:"platos", icon:"plato", name:"Plato Llano Crudo", desc:"Borde irregular hecho a mano, acabado mate.", price:58000, stock:10, material:"Gres"},
-  {id:"p13", cat:"platos", icon:"plato", name:"Plato Hondo Rosa", desc:"Para pastas y arroces, esmalte rosa empolvado.", price:62000, stock:8, material:"Arcilla roja"},
-  {id:"p14", cat:"platos", icon:"plato", name:"Plato Postre Salvia", desc:"Tamaño pequeño, esmalte verde salvia en el centro.", price:45000, stock:11, material:"Gres"}
+  {id:"p1", cat:"pijamas", icon:"pijama", name:"Pijama Luna", desc:"Set de dos piezas en algodón suave, estampado de lunas y manga corta.", price:45000, stock:10, material:"Algodón"},
+  {id:"p2", cat:"pijamas", icon:"pijama", name:"Pijama Arcoíris", desc:"Camiseta y short a juego, tela fresca ideal para dormir en clima cálido.", price:42000, stock:8, material:"Algodón"},
+  {id:"p3", cat:"pijamas", icon:"pijama", name:"Pijama Estrellas", desc:"Manga larga y pantalón, franela suave para las noches frías de Bogotá.", price:52000, stock:6, material:"Franela"},
+  {id:"p4", cat:"pijamas", icon:"pijama", name:"Pijama Básica Lila", desc:"Diseño sencillo en color sólido, corte cómodo unisex.", price:38000, stock:12, material:"Algodón"},
+  {id:"p5", cat:"zapatos", icon:"zapato", name:"Tenis Urbano Blanco", desc:"Suela liviana y agarre firme, combina con cualquier outfit.", price:89000, stock:7, material:"Sintético"},
+  {id:"p6", cat:"zapatos", icon:"zapato", name:"Sandalia Verano", desc:"Plantilla acolchada y correa ajustable, ideal para el día a día.", price:56000, stock:9, material:"Cuero sintético"},
+  {id:"p7", cat:"zapatos", icon:"zapato", name:"Botín Casual Negro", desc:"Corte al tobillo, suela antideslizante, para looks casuales o de oficina.", price:98000, stock:4, material:"Cuero sintético"},
+  {id:"p8", cat:"zapatos", icon:"zapato", name:"Tenis Deportivo Gris", desc:"Malla transpirable, amortiguación media, pensado para uso diario.", price:82000, stock:6, material:"Malla y goma"},
+  {id:"p9", cat:"maquillaje", icon:"maquillaje", name:"Paleta de Sombras Sunset", desc:"12 tonos mate y shimmer en tonos cálidos, larga duración.", price:48000, stock:11, material:"Sombras"},
+  {id:"p10", cat:"maquillaje", icon:"maquillaje", name:"Labial Mate Rosa Nude", desc:"Fórmula liviana de larga duración, no reseca los labios.", price:22000, stock:15, material:"Labial"},
+  {id:"p11", cat:"maquillaje", icon:"maquillaje", name:"Base Líquida Natural", desc:"Cobertura media buildable, acabado natural para todo tipo de piel.", price:39000, stock:8, material:"Base líquida"},
+  {id:"p12", cat:"maquillaje", icon:"maquillaje", name:"Set de Brochas x5", desc:"Cerdas suaves para base, rubor y sombras, incluye estuche.", price:35000, stock:9, material:"Brochas"}
 ];
 
 const DEFAULT_CATEGORIES = [
-  {id:"tazas", name:"Tazas"},
-  {id:"cuencos", name:"Cuencos"},
-  {id:"jarrones", name:"Jarrones"},
-  {id:"platos", name:"Platos"}
+  {id:"pijamas", name:"Pijamas"},
+  {id:"zapatos", name:"Zapatos"},
+  {id:"maquillaje", name:"Maquillaje"}
 ];
 
 /* ---------- Capa de datos: Firestore en tiempo real ---------- */
@@ -763,6 +807,14 @@ function populateCategorySelect(){
 }
 
 grid.addEventListener('click', e => {
+  const artEl = e.target.closest('.art');
+  if(artEl && !e.target.closest('.add-btn')){
+    const card = artEl.closest('.card');
+    const id = card.querySelector('.add-btn')?.dataset.id;
+    const p = PRODUCTS.find(x => x.id === id);
+    if(p) openLightbox(p);
+    return;
+  }
   const btn = e.target.closest('.add-btn');
   if(!btn || btn.disabled) return;
   const id = btn.dataset.id;
@@ -770,6 +822,20 @@ grid.addEventListener('click', e => {
   saveCart();
   renderCart();
   showToast("Se agregó al carrito");
+});
+
+function openLightbox(p){
+  document.getElementById('lightboxVisual').innerHTML = productVisual(p);
+  document.getElementById('lightboxName').textContent = p.name;
+  document.getElementById('lightboxPrice').textContent = fmt(p.price);
+  document.getElementById('lightboxOverlay').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightboxOverlay').classList.remove('open');
+}
+document.getElementById('lightboxCloseBtn').addEventListener('click', closeLightbox);
+document.getElementById('lightboxOverlay').addEventListener('click', e => {
+  if(e.target.id === 'lightboxOverlay') closeLightbox();
 });
 
 document.getElementById('filters').addEventListener('click', e => {
@@ -1392,7 +1458,7 @@ function endEditProduct(){
   editingId = null;
   productFields.forEach(fid => document.getElementById(fid).value = '');
   if(CATEGORIES.length) document.getElementById('fCat').value = CATEGORIES[0].id;
-  document.getElementById('fIcon').value = 'taza';
+  document.getElementById('fIcon').value = 'pijama';
   pendingImageDataUrl = null;
   removeImageFlag = false;
   currentImageUrl = null;
@@ -1411,7 +1477,7 @@ document.getElementById('addProductBtn').addEventListener('click', async () => {
   const price = parseInt(document.getElementById('fPrice').value, 10);
   const cat = document.getElementById('fCat').value;
   const icon = document.getElementById('fIcon').value;
-  const material = document.getElementById('fMaterial').value.trim() || "Gres";
+  const material = document.getElementById('fMaterial').value.trim() || "General";
   const stock = parseInt(document.getElementById('fStock').value, 10) || 0;
   const desc = document.getElementById('fDesc').value.trim() || "Pieza hecha a mano.";
 

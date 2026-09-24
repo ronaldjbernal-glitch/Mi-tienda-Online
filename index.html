@@ -95,6 +95,17 @@
     cursor:pointer; font-size:16px; position:relative;
   }
   .icon-btn:hover{ border-color:var(--clay); color:var(--clay); }
+  .icon-btn-wide{ width:auto; padding:0 14px; gap:6px; font-size:14px; }
+  .icon-btn-wide .icon-label{ font-size:12.5px; font-weight:500; }
+  .online-pill{
+    display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px;
+    padding:6px 10px; font-size:12px; color:var(--ink-soft); background:var(--card);
+  }
+  .online-pill .dot{
+    width:7px; height:7px; border-radius:50%; background:#3FC96B;
+    animation:pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
   .badge{
     position:absolute; top:-6px; right:-6px;
     background:var(--clay-deep); color:#fff;
@@ -308,9 +319,21 @@
   /* ---------- Footer ---------- */
   footer{
     border-top:1px solid var(--line); padding:32px clamp(20px,4vw,56px) 46px;
-    display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px;
     font-size:13px; color:var(--ink-soft);
   }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-social{ flex-direction:row; align-items:center; gap:10px; }
+  .footer-social a{
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:50%; border:1px solid var(--line);
+    color:var(--ink-soft); transition:.15s;
+  }
+  .footer-social a:hover{ border-color:var(--clay); color:var(--clay); }
+  .footer-social svg{ width:17px; height:17px; }
+  .footer-links{ align-items:flex-start; }
+  .footer-links .link-btn{ font-size:13px; padding:0; color:var(--ink-soft); }
+  .footer-links .link-btn:hover{ color:var(--clay); }
   .toast{
     position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
     background:var(--ink); color:var(--card); padding:12px 20px; border-radius:999px;
@@ -340,9 +363,12 @@
   </div>
   <div class="header-actions">
     <button class="link-btn" id="adminOpenBtn">Administrar</button>
-    <button class="icon-btn" id="themeToggle" title="Cambiar tema">◐</button>
-    <button class="icon-btn" id="cartOpenBtn" title="Ver carrito">
-      ⛃
+    <div class="online-pill" id="onlinePill" style="display:none;" title="Personas viendo el sitio ahora">
+      <span class="dot"></span><span id="onlineCount">0</span>
+    </div>
+    <button class="icon-btn icon-btn-wide" id="themeToggle" title="Cambiar tema">◐<span class="icon-label">Tema</span></button>
+    <button class="icon-btn icon-btn-wide" id="cartOpenBtn" title="Ver carrito">
+      ⛃<span class="icon-label">Carrito</span>
       <span class="badge" id="cartBadge" style="display:none;">0</span>
     </button>
   </div>
@@ -357,7 +383,6 @@
         <div><strong id="metaCount">0</strong>productos en catálogo</div>
         <div><strong>100%</strong>envíos a todo Bogotá</div>
         <div><strong>♥</strong>calidad a bajo precio</div>
-        <div id="onlineWrap" style="display:none;"><strong id="onlineCount">0</strong>viendo esto ahora</div>
       </div>
     </div>
     <div class="hero-art">
@@ -376,8 +401,15 @@
 </div>
 
 <footer>
-  <div id="footerText">Luna Arcoiris — tu tienda virtual de confianza.</div>
-  <div>Bogotá, Colombia</div>
+  <div class="footer-col">
+    <div id="footerText">Luna Arcoiris — tu tienda virtual de confianza.</div>
+    <div>Bogotá, Colombia</div>
+  </div>
+  <div class="footer-col footer-social" id="footerSocial"></div>
+  <div class="footer-col footer-links">
+    <button class="link-btn" id="aboutOpenBtn">Quiénes somos</button>
+    <button class="link-btn" id="privacyOpenBtn">Política de tratamiento de datos</button>
+  </div>
 </footer>
 
 <!-- Carrito -->
@@ -519,6 +551,24 @@
       <div class="section-title">Datos de contacto</div>
       <div class="field"><label>Número de WhatsApp (solo dígitos, con código de país)</label><input id="sWhatsapp" placeholder="573001234567"></div>
 
+      <div class="section-title">Redes sociales (déjalo vacío para ocultar el ícono)</div>
+      <div class="row2">
+        <div class="field"><label>Instagram (link completo)</label><input id="sInstagram" placeholder="https://instagram.com/tu_tienda"></div>
+        <div class="field"><label>Facebook (link completo)</label><input id="sFacebook" placeholder="https://facebook.com/tu_tienda"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>TikTok (link completo)</label><input id="sTiktok" placeholder="https://tiktok.com/@tu_tienda"></div>
+        <div class="field"><label>YouTube (link completo)</label><input id="sYoutube" placeholder="https://youtube.com/@tu_tienda"></div>
+      </div>
+
+      <div class="section-title">Quiénes somos</div>
+      <div class="field"><label>Título</label><input id="sAboutTitle" placeholder="Quiénes somos"></div>
+      <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sAboutText" rows="5"></textarea></div>
+
+      <div class="section-title">Política de tratamiento de datos</div>
+      <div class="field"><label>Título</label><input id="sPrivacyTitle" placeholder="Política de tratamiento de datos"></div>
+      <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sPrivacyText" rows="6"></textarea></div>
+
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveSiteBtn">Guardar cambios del sitio</button>
         <button class="btn btn-ghost" id="resetSiteBtn">Restablecer valores por defecto</button>
@@ -528,6 +578,16 @@
     <div class="modal-actions">
       <button class="btn btn-danger" id="logoutBtn">Cerrar sesión</button>
       <button class="btn btn-ghost" id="adminCloseBtn">Cerrar panel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="infoOverlay">
+  <div class="modal">
+    <h2 id="infoTitle">Quiénes somos</h2>
+    <div id="infoBody" style="white-space:pre-line; line-height:1.7; color:var(--ink-soft); font-size:14.5px; margin-top:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="infoCloseBtn">Cerrar</button>
     </div>
   </div>
 </div>
@@ -591,7 +651,15 @@ const DEFAULT_SETTINGS = {
   heroSubtitle: "Pijamas, zapatos, maquillaje y mucho más. Una sola tienda virtual en Bogotá, pensada para todo tipo de clientes.",
   footerText: "Luna Arcoiris — tu tienda virtual de confianza.",
   accentColor: "#5B67E8",
-  whatsappNumber: "573000000000" // TODO: tu número real, solo dígitos con código de país, sin + ni espacios
+  whatsappNumber: "573000000000", // TODO: tu número real, solo dígitos con código de país, sin + ni espacios
+  instagramUrl: "",
+  facebookUrl: "",
+  tiktokUrl: "",
+  youtubeUrl: "",
+  aboutTitle: "Quiénes somos",
+  aboutText: "Luna Arcoiris nació con una idea sencilla: ofrecer pijamas, zapatos y maquillaje de buena calidad a un precio justo, sin que nuestros clientes tengan que recorrer media ciudad para encontrarlos.\n\nSomos una tienda virtual bogotana que cree en la cercanía: cada pedido se atiende directamente por WhatsApp, para resolver dudas de tallas, colores y disponibilidad antes de comprar.\n\nNuestra visión es seguir creciendo como una tienda de confianza, ampliando poco a poco las categorías que ofrecemos, siempre cuidando la calidad de cada producto y la atención a cada cliente.",
+  privacyTitle: "Política de tratamiento de datos",
+  privacyText: "En Luna Arcoiris recolectamos únicamente los datos personales necesarios para procesar tu pedido: nombre, número de contacto y dirección de entrega. Esta información se solicita a través de WhatsApp al momento de confirmar tu compra.\n\nTus datos se usan exclusivamente para gestionar el pedido, coordinar el envío y resolver dudas relacionadas con tu compra. No compartimos, vendemos ni cedemos tu información a terceros para fines comerciales.\n\nDe acuerdo con la Ley 1581 de 2012 (Ley de Protección de Datos Personales) y sus decretos reglamentarios en Colombia, como titular de tus datos tienes derecho a conocer, actualizar, rectificar y solicitar la eliminación de la información que hayamos recolectado. Para ejercer estos derechos, puedes escribirnos directamente por WhatsApp.\n\nAl realizar un pedido a través de este sitio, aceptas el tratamiento de tus datos personales conforme a lo descrito en esta política."
 };
 
 const CART_KEY = "lunaArcoiris_carrito_v1"; // el carrito sigue siendo local a cada visitante
@@ -755,6 +823,28 @@ function applySettings(){
   document.getElementById('footerText').textContent = SETTINGS.footerText;
   document.documentElement.style.setProperty('--clay', SETTINGS.accentColor);
   document.documentElement.style.setProperty('--clay-deep', shade(SETTINGS.accentColor, -0.2));
+  renderFooterSocial();
+}
+
+const SOCIAL_ICONS = {
+  instagram: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>`,
+  whatsapp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20l1.4-4.2A8 8 0 1 1 9 18.5L4 20Z"/><path d="M8.5 9.5c0 3 2.5 5.5 5.5 5.5"/></svg>`,
+  facebook: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 9h3V5h-3c-2 0-3.5 1.5-3.5 3.5V11H8v4h2.5v6h4v-6H17l.5-4h-3v-1.5c0-.5.3-.9 1-.9Z"/></svg>`,
+  tiktok: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4v10.5a3 3 0 1 1-2.5-3"/><path d="M14 4c.5 2.5 2 4 4.5 4.2"/></svg>`,
+  youtube: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M10 9.5l5 2.5-5 2.5Z" fill="currentColor" stroke="none"/></svg>`
+};
+function renderFooterSocial(){
+  const wrap = document.getElementById('footerSocial');
+  if(!wrap) return;
+  const links = [];
+  if(SETTINGS.whatsappNumber) links.push(['whatsapp', `https://wa.me/${SETTINGS.whatsappNumber}`]);
+  if(SETTINGS.instagramUrl) links.push(['instagram', SETTINGS.instagramUrl]);
+  if(SETTINGS.facebookUrl) links.push(['facebook', SETTINGS.facebookUrl]);
+  if(SETTINGS.tiktokUrl) links.push(['tiktok', SETTINGS.tiktokUrl]);
+  if(SETTINGS.youtubeUrl) links.push(['youtube', SETTINGS.youtubeUrl]);
+  wrap.innerHTML = links.map(([key, url]) =>
+    `<a href="${url}" target="_blank" rel="noopener" title="${key}">${SOCIAL_ICONS[key]}</a>`
+  ).join('');
 }
 
 function fmt(n){ return "$" + Number(n).toLocaleString("es-CO"); }
@@ -842,6 +932,26 @@ function closeLightbox(){
 document.getElementById('lightboxCloseBtn').addEventListener('click', closeLightbox);
 document.getElementById('lightboxOverlay').addEventListener('click', e => {
   if(e.target.id === 'lightboxOverlay') closeLightbox();
+});
+
+/* ---------- Quiénes somos / Política de datos ---------- */
+function openInfoModal(title, text){
+  document.getElementById('infoTitle').textContent = title;
+  document.getElementById('infoBody').textContent = text;
+  document.getElementById('infoOverlay').classList.add('open');
+}
+function closeInfoModal(){
+  document.getElementById('infoOverlay').classList.remove('open');
+}
+document.getElementById('aboutOpenBtn').addEventListener('click', () => {
+  openInfoModal(SETTINGS.aboutTitle, SETTINGS.aboutText);
+});
+document.getElementById('privacyOpenBtn').addEventListener('click', () => {
+  openInfoModal(SETTINGS.privacyTitle, SETTINGS.privacyText);
+});
+document.getElementById('infoCloseBtn').addEventListener('click', closeInfoModal);
+document.getElementById('infoOverlay').addEventListener('click', e => {
+  if(e.target.id === 'infoOverlay') closeInfoModal();
 });
 
 document.getElementById('filters').addEventListener('click', e => {
@@ -1247,6 +1357,14 @@ function fillSiteForm(){
   document.getElementById('sFooter').value = SETTINGS.footerText;
   document.getElementById('sAccent').value = SETTINGS.accentColor;
   document.getElementById('sWhatsapp').value = SETTINGS.whatsappNumber;
+  document.getElementById('sInstagram').value = SETTINGS.instagramUrl;
+  document.getElementById('sFacebook').value = SETTINGS.facebookUrl;
+  document.getElementById('sTiktok').value = SETTINGS.tiktokUrl;
+  document.getElementById('sYoutube').value = SETTINGS.youtubeUrl;
+  document.getElementById('sAboutTitle').value = SETTINGS.aboutTitle;
+  document.getElementById('sAboutText').value = SETTINGS.aboutText;
+  document.getElementById('sPrivacyTitle').value = SETTINGS.privacyTitle;
+  document.getElementById('sPrivacyText').value = SETTINGS.privacyText;
 }
 
 document.getElementById('saveSiteBtn').addEventListener('click', async () => {
@@ -1256,7 +1374,15 @@ document.getElementById('saveSiteBtn').addEventListener('click', async () => {
     heroSubtitle: document.getElementById('sHeroSub').value.trim() || DEFAULT_SETTINGS.heroSubtitle,
     footerText: document.getElementById('sFooter').value.trim() || DEFAULT_SETTINGS.footerText,
     accentColor: document.getElementById('sAccent').value || DEFAULT_SETTINGS.accentColor,
-    whatsappNumber: document.getElementById('sWhatsapp').value.trim().replace(/[^\d]/g,'') || DEFAULT_SETTINGS.whatsappNumber
+    whatsappNumber: document.getElementById('sWhatsapp').value.trim().replace(/[^\d]/g,'') || DEFAULT_SETTINGS.whatsappNumber,
+    instagramUrl: document.getElementById('sInstagram').value.trim(),
+    facebookUrl: document.getElementById('sFacebook').value.trim(),
+    tiktokUrl: document.getElementById('sTiktok').value.trim(),
+    youtubeUrl: document.getElementById('sYoutube').value.trim(),
+    aboutTitle: document.getElementById('sAboutTitle').value.trim() || DEFAULT_SETTINGS.aboutTitle,
+    aboutText: document.getElementById('sAboutText').value.trim() || DEFAULT_SETTINGS.aboutText,
+    privacyTitle: document.getElementById('sPrivacyTitle').value.trim() || DEFAULT_SETTINGS.privacyTitle,
+    privacyText: document.getElementById('sPrivacyText').value.trim() || DEFAULT_SETTINGS.privacyText
   };
   try{
     await setDoc(settingsRef, patch, { merge:true });
@@ -1555,9 +1681,10 @@ function updateOnlineCount(){
   let count = 0;
   Object.values(presenceDocs).forEach(ts => { if(ts && (now - ts) < ONLINE_WINDOW_MS) count++; });
   const el = document.getElementById('onlineCount');
-  if(!el) return;
-  if(count <= 0){ el.parentElement.style.display = 'none'; return; }
-  el.parentElement.style.display = '';
+  const pill = document.getElementById('onlinePill');
+  if(!el || !pill) return;
+  if(count <= 0){ pill.style.display = 'none'; return; }
+  pill.style.display = 'flex';
   el.textContent = count;
 }
 try{

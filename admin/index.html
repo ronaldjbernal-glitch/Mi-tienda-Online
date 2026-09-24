@@ -298,8 +298,18 @@
   .section-title{ font-family:'Fraunces', serif; font-size:16px; margin:22px 0 10px; }
   .admin-tabs{ display:flex; gap:8px; margin:4px 0 10px; flex-wrap:wrap; }
 
-  .sales-summary{ display:flex; gap:12px; margin:6px 0 16px; }
-  .sales-box{ flex:1; background:var(--cream); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .sales-summary{ display:flex; gap:12px; margin:6px 0 16px; flex-wrap:wrap; }
+  .sales-box{ flex:1; min-width:140px; background:var(--cream); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .stat-callout{ flex:1; min-width:160px; border-radius:12px; padding:14px 16px; border:1px solid var(--line); }
+  .stat-callout.stat-best{ background:color-mix(in srgb, #3FC96B 12%, var(--card)); border-color:color-mix(in srgb, #3FC96B 35%, var(--line)); }
+  .stat-callout.stat-worst{ background:color-mix(in srgb, var(--danger) 10%, var(--card)); border-color:color-mix(in srgb, var(--danger) 30%, var(--line)); }
+  .stat-callout-label{ font-size:12px; color:var(--ink-soft); margin-bottom:4px; }
+  .stat-callout-value{ font-family:'Fraunces', serif; font-size:20px; color:var(--ink); }
+  .stat-callout-sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; text-transform:capitalize; }
+  .stat-row{ padding:10px 0; border-bottom:1px solid var(--line); }
+  .stat-row-top{ display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:6px; text-transform:capitalize; }
+  .stat-bar-track{ height:8px; border-radius:5px; background:var(--cream); overflow:hidden; }
+  .stat-bar-fill{ height:100%; background:var(--clay); border-radius:5px; }
   .sales-label{ font-size:12px; color:var(--ink-soft); margin-bottom:4px; }
   .sales-value{ font-family:'Fraunces', serif; font-size:20px; color:var(--clay-deep); }
 
@@ -461,6 +471,7 @@
       <button class="chip active" data-tab="productos">Productos</button>
       <button class="chip" data-tab="categorias">Categorías</button>
       <button class="chip" data-tab="pedidos">Pedidos</button>
+      <button class="chip" data-tab="estadisticas">Estadísticas</button>
       <button class="chip" data-tab="sitio">Apariencia y datos</button>
     </div>
 
@@ -527,12 +538,27 @@
           <div class="sales-label">Vendido este mes</div>
           <div class="sales-value" id="salesMonth">$0</div>
         </div>
+        <div class="sales-box">
+          <div class="sales-label">Total histórico</div>
+          <div class="sales-value" id="salesTotal">$0</div>
+        </div>
       </div>
       <div class="config-note">
         Cada vez que alguien le da a "Enviar pedido por WhatsApp" queda registrado aquí como <strong>Pendiente</strong>. Cuando confirmes por WhatsApp que la venta sí se hizo, marca el pedido como <strong>Completado</strong> — ahí se descuenta el inventario automáticamente. Si no se concretó, marca <strong>No se efectuó</strong> y el inventario queda igual.
       </div>
       <div class="section-title">Historial de pedidos</div>
       <div class="admin-list" id="orderList"></div>
+    </div>
+
+    <div id="adminStatsSection" style="display:none;">
+      <div class="admin-tabs" id="statsTabs" style="margin-bottom:14px;">
+        <button class="chip active" data-period="dia">Por día</button>
+        <button class="chip" data-period="semana">Por semana</button>
+        <button class="chip" data-period="mes">Por mes</button>
+      </div>
+      <div class="sales-summary" id="statsBestWorst"></div>
+      <div class="section-title">Detalle</div>
+      <div id="statsList"></div>
     </div>
 
     <div id="adminSiteSection" style="display:none;">
@@ -787,14 +813,26 @@ onSnapshot(categoriesCol, async (snap) => {
   showToast("No se pudieron cargar las categorías");
 });
 
-onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snap) => {
-  ORDERS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  ordersLoaded = true;
-  if(adminOverlay && adminOverlay.classList.contains('open')) renderOrders();
-}, err => {
-  console.error(err);
-  showToast("No se pudieron cargar los pedidos");
-});
+let unsubscribeOrders = null;
+function subscribeOrders(){
+  if(unsubscribeOrders) return; // ya está suscrito
+  unsubscribeOrders = onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snap) => {
+    ORDERS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    ordersLoaded = true;
+    if(adminOverlay && adminOverlay.classList.contains('open')){
+      renderOrders();
+      if(document.getElementById('adminStatsSection').style.display !== 'none') renderStats();
+    }
+  }, err => {
+    console.error(err);
+    if(isAdmin) showToast("No se pudieron cargar los pedidos");
+  });
+}
+function unsubscribeOrdersFn(){
+  if(unsubscribeOrders){ unsubscribeOrders(); unsubscribeOrders = null; }
+  ordersLoaded = false;
+  ORDERS = [];
+}
 
 let seededSettings = false;
 onSnapshot(settingsRef, async (snap) => {
@@ -1102,12 +1140,14 @@ function openAdmin(){
   document.getElementById('adminProductsSection').style.display = 'block';
   document.getElementById('adminCategoriesSection').style.display = 'none';
   document.getElementById('adminOrdersSection').style.display = 'none';
+  document.getElementById('adminStatsSection').style.display = 'none';
   document.getElementById('adminSiteSection').style.display = 'none';
 }
 function closeAdmin(){ adminOverlay.classList.remove('open'); }
 
 onAuthStateChanged(auth, (user) => {
   isAdmin = !!user;
+  if(isAdmin) subscribeOrders(); else unsubscribeOrdersFn();
   if(ADMIN_ROUTE && !authAutoPrompted){
     authAutoPrompted = true;
     if(isAdmin) openAdmin(); else openLogin();
@@ -1167,9 +1207,11 @@ document.getElementById('adminTabs').addEventListener('click', e => {
   document.getElementById('adminProductsSection').style.display = tab === 'productos' ? 'block' : 'none';
   document.getElementById('adminCategoriesSection').style.display = tab === 'categorias' ? 'block' : 'none';
   document.getElementById('adminOrdersSection').style.display = tab === 'pedidos' ? 'block' : 'none';
+  document.getElementById('adminStatsSection').style.display = tab === 'estadisticas' ? 'block' : 'none';
   document.getElementById('adminSiteSection').style.display = tab === 'sitio' ? 'block' : 'none';
   if(tab === 'sitio') fillSiteForm();
   if(tab === 'pedidos') renderOrders();
+  if(tab === 'estadisticas') renderStats();
 });
 
 /* ---------- Panel admin: categorías ---------- */
@@ -1272,6 +1314,8 @@ function renderOrders(){
           <button class="btn btn-ghost btn-sm cancel-order">No se efectuó</button>`;
       } else if(o.status === 'completado'){
         actions = `<button class="btn btn-ghost btn-sm revert-order">Deshacer</button>`;
+      } else if(o.status === 'cancelado'){
+        actions = `<button class="btn btn-danger btn-sm delete-order">Eliminar</button>`;
       }
       return `
       <div class="order-row" data-id="${o.id}">
@@ -1295,9 +1339,91 @@ function renderOrders(){
   const soldMonth = ORDERS
     .filter(o => o.status === 'completado' && isSameMonth(o.completedAt || o.createdAt, now))
     .reduce((s,o) => s + o.subtotal, 0);
+  const soldTotal = ORDERS
+    .filter(o => o.status === 'completado')
+    .reduce((s,o) => s + o.subtotal, 0);
   document.getElementById('salesToday').textContent = fmt(soldToday);
   document.getElementById('salesMonth').textContent = fmt(soldMonth);
+  document.getElementById('salesTotal').textContent = fmt(soldTotal);
 }
+
+/* ---------- Panel admin: dashboard de estadísticas ---------- */
+let currentStatsPeriod = 'dia';
+function statsGroupKeyLabel(ts, period){
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  if(period === 'semana'){
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    const key = `${monday.getFullYear()}-${pad(monday.getMonth()+1)}-${pad(monday.getDate())}`;
+    const shortFmt = x => x.toLocaleDateString('es-CO', { day:'numeric', month:'short' });
+    return { key, label: `Semana del ${shortFmt(monday)} al ${shortFmt(sunday)}` };
+  }
+  if(period === 'mes'){
+    const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    return { key, label: d.toLocaleDateString('es-CO', { month:'long', year:'numeric' }) };
+  }
+  // día
+  const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  return { key, label: d.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'short', year:'numeric' }) };
+}
+function renderStats(){
+  const calloutEl = document.getElementById('statsBestWorst');
+  const listEl = document.getElementById('statsList');
+  if(!calloutEl || !listEl) return;
+
+  const completed = ORDERS.filter(o => o.status === 'completado');
+  if(completed.length === 0){
+    calloutEl.innerHTML = '';
+    listEl.innerHTML = `<div style="color:var(--ink-soft); font-size:13.5px; padding:14px 0;">Todavía no hay ventas completadas para mostrar estadísticas.</div>`;
+    return;
+  }
+
+  const groups = {};
+  completed.forEach(o => {
+    const ts = o.completedAt || o.createdAt;
+    const { key, label } = statsGroupKeyLabel(ts, currentStatsPeriod);
+    if(!groups[key]) groups[key] = { key, label, total: 0, ts };
+    groups[key].total += o.subtotal;
+  });
+  const byDateDesc = Object.values(groups).sort((a,b) => b.ts - a.ts);
+  const byTotalDesc = [...byDateDesc].sort((a,b) => b.total - a.total);
+  const best = byTotalDesc[0];
+  const worst = byTotalDesc[byTotalDesc.length - 1];
+  const maxTotal = best.total;
+
+  const periodWord = currentStatsPeriod === 'dia' ? 'día' : currentStatsPeriod === 'semana' ? 'semana' : 'mes';
+  calloutEl.innerHTML = `
+    <div class="stat-callout stat-best">
+      <div class="stat-callout-label">Mejor ${periodWord}</div>
+      <div class="stat-callout-value">${fmt(best.total)}</div>
+      <div class="stat-callout-sub">${best.label}</div>
+    </div>
+    ${byTotalDesc.length > 1 ? `
+    <div class="stat-callout stat-worst">
+      <div class="stat-callout-label">${periodWord === 'día' ? 'Día' : periodWord === 'semana' ? 'Semana' : 'Mes'} más flojo</div>
+      <div class="stat-callout-value">${fmt(worst.total)}</div>
+      <div class="stat-callout-sub">${worst.label}</div>
+    </div>` : ''}
+  `;
+
+  listEl.innerHTML = byDateDesc.map(g => `
+    <div class="stat-row">
+      <div class="stat-row-top"><span>${g.label}</span><span>${fmt(g.total)}</span></div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${maxTotal > 0 ? (g.total / maxTotal * 100) : 0}%"></div></div>
+    </div>
+  `).join('');
+}
+document.getElementById('statsTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if(!btn) return;
+  document.querySelectorAll('#statsTabs .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  currentStatsPeriod = btn.dataset.period;
+  renderStats();
+});
 
 async function completeOrder(order){
   try{
@@ -1340,6 +1466,17 @@ async function revertOrder(order){
   }
 }
 
+async function deleteOrder(order){
+  if(!confirm("¿Eliminar este pedido de forma permanente? No se puede deshacer.")) return;
+  try{
+    await deleteDoc(doc(db, "pedidos", order.id));
+    showToast("Pedido eliminado");
+  }catch(err){
+    console.error(err);
+    showToast("No se pudo eliminar (revisa las reglas de Firestore)");
+  }
+}
+
 document.getElementById('orderList').addEventListener('click', e => {
   const row = e.target.closest('.order-row');
   if(!row) return;
@@ -1348,6 +1485,7 @@ document.getElementById('orderList').addEventListener('click', e => {
   if(e.target.closest('.complete-order')) completeOrder(order);
   if(e.target.closest('.cancel-order')) cancelOrder(order);
   if(e.target.closest('.revert-order')) revertOrder(order);
+  if(e.target.closest('.delete-order')) deleteOrder(order);
 });
 
 function fillSiteForm(){

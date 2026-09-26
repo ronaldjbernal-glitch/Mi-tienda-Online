@@ -170,6 +170,24 @@
     display:inline-block; margin-top:2px; font-size:11px; font-weight:600; color:#fff;
     background:var(--danger); border-radius:6px; padding:2px 7px; width:fit-content;
   }
+
+  /* ---------- Outlet (sección propia, con su tema) ---------- */
+  .outlet-overlay{
+    position:fixed; inset:0; z-index:90; display:none; overflow-y:auto;
+    background:var(--cream); color:var(--ink);
+  }
+  .outlet-overlay.open{ display:block; }
+  .outlet-inner{ max-width:1180px; margin:0 auto; padding:28px clamp(20px,4vw,56px) 60px; }
+  .outlet-head{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    padding-bottom:18px; margin-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .outlet-title{ display:flex; align-items:center; gap:10px; font-family:'Fraunces', serif; font-size:28px; }
+  .outlet-flame{ font-size:26px; }
+  .outlet-close-btn{ background:transparent; border:1px solid var(--line); color:var(--ink); }
+  .outlet-close-btn:hover{ border-color:var(--clay); color:var(--clay); }
+  .outlet-sub{ color:var(--ink-soft); font-size:14px; margin:10px 0 22px; }
+  .outlet-empty{ grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--ink-soft); }
   .card .art svg{ height:110px; width:auto; }
   .card .art img{ width:100%; height:100%; object-fit:cover; border-radius:12px; }
   .card .tag{ font-size:12.5px; color:var(--moss); margin-bottom:6px; }
@@ -403,6 +421,7 @@
       ⛃<span class="icon-label">Carrito</span>
       <span class="badge" id="cartBadge" style="display:none;">0</span>
     </button>
+    <button class="icon-btn icon-btn-wide" id="outletOpenBtn" style="display:none;" title="Ver Outlet">🔥<span class="icon-label" id="outletOpenLabel">Outlet</span></button>
   </div>
 </header>
 
@@ -536,6 +555,10 @@
       <div id="sizeRows"></div>
       <button type="button" class="link-btn" id="addSizeRowBtn" style="padding-left:0;">+ Agregar talla</button>
     </div>
+    <label style="display:flex; align-items:center; gap:8px; margin:4px 0 14px; cursor:pointer;">
+      <input type="checkbox" id="fOutlet" style="width:auto;">
+      <span>Marcar como Outlet / colección pasada</span>
+    </label>
     <div class="field"><label>Descripción</label><textarea id="fDesc" placeholder="Set de dos piezas en algodón suave..."></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelEditBtn" style="display:none;">Cancelar edición</button>
@@ -667,6 +690,23 @@
           <span>Activar descuento por última unidad</span>
         </label>
         <div class="field"><label>Porcentaje de descuento (%)</label><input id="sLastUnitPercent" type="number" min="0" max="90" placeholder="15"></div>
+
+        <div class="section-title">Sección Outlet</div>
+        <div class="config-note" style="margin-bottom:10px;">
+          Es una página aparte, con su propio tema oscuro y color, para las piezas de última unidad o de colecciones pasadas que marques como "Outlet" en su ficha de producto (o que caigan automáticamente por última unidad, si activaste ese descuento arriba). Aparece un botón "🔥 Outlet" en la parte de arriba del sitio, solo si la activas aquí.
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;">
+          <input type="checkbox" id="sOutletEnabled" style="width:auto;">
+          <span>Activar sección Outlet</span>
+        </label>
+        <div class="row2">
+          <div class="field"><label>Nombre de la sección</label><input id="sOutletTitle" placeholder="Outlet"></div>
+          <div class="field"><label>Porcentaje para productos marcados como Outlet (%)</label><input id="sOutletPercent" type="number" min="0" max="90" placeholder="30"></div>
+        </div>
+        <div class="field">
+          <label>Color del tema Outlet</label>
+          <input id="sOutletColor" type="color" style="height:42px; padding:4px; cursor:pointer;">
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -689,6 +729,20 @@
     <div class="modal-actions">
       <button class="btn btn-primary" id="infoCloseBtn">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<div class="outlet-overlay" id="outletOverlay">
+  <div class="outlet-inner">
+    <div class="outlet-head">
+      <div class="outlet-title">
+        <span class="outlet-flame">🔥</span>
+        <span id="outletHeadTitle">Outlet</span>
+      </div>
+      <button class="btn outlet-close-btn" id="outletCloseBtn">Volver a la tienda</button>
+    </div>
+    <div id="outletSub" class="outlet-sub">Piezas de última unidad y colección pasada, a precio especial.</div>
+    <div class="grid" id="outletGrid"></div>
   </div>
 </div>
 
@@ -766,7 +820,11 @@ const DEFAULT_SETTINGS = {
   promoEnabled: false,
   promoPercent: 20,
   lastUnitDiscountEnabled: false,
-  lastUnitDiscountPercent: 15
+  lastUnitDiscountPercent: 15,
+  outletEnabled: false,
+  outletPercent: 30,
+  outletColor: "#E4572E",
+  outletTitle: "Outlet"
 };
 
 const CART_KEY = "lunaArcoiris_carrito_v1"; // el carrito sigue siendo local a cada visitante
@@ -868,6 +926,8 @@ onSnapshot(productsCol, async (snap) => {
   renderGrid();
   renderCart();
   if(adminOverlay && adminOverlay.classList.contains('open')) renderAdminList();
+  const outletOverlayEl = document.getElementById('outletOverlay');
+  if(outletOverlayEl && outletOverlayEl.classList.contains('open') && typeof renderOutletGrid === 'function') renderOutletGrid();
 }, err => {
   console.error(err);
   showToast("No se pudo conectar con la base de datos");
@@ -946,6 +1006,18 @@ function applySettings(){
   renderHeroCarousel();
   if(typeof renderGrid === 'function' && PRODUCTS.length) renderGrid();
   if(typeof renderCart === 'function') renderCart();
+
+  const outletBtn = document.getElementById('outletOpenBtn');
+  if(outletBtn){
+    outletBtn.style.display = SETTINGS.outletEnabled ? 'flex' : 'none';
+    outletBtn.style.borderColor = SETTINGS.outletColor || '#E4572E';
+    outletBtn.style.color = SETTINGS.outletColor || '#E4572E';
+    document.getElementById('outletOpenLabel').textContent = SETTINGS.outletTitle || 'Outlet';
+  }
+  document.getElementById('outletHeadTitle').textContent = SETTINGS.outletTitle || 'Outlet';
+  if(typeof applyOutletTheme === 'function') applyOutletTheme();
+  const outletOverlayEl = document.getElementById('outletOverlay');
+  if(outletOverlayEl && outletOverlayEl.classList.contains('open') && typeof renderOutletGrid === 'function') renderOutletGrid();
 }
 
 /* ---------- Carrusel del hero ---------- */
@@ -1027,6 +1099,15 @@ function getUnitPrice(product, size){
       badge: `Última unidad −${pct}%`
     };
   }
+  if(SETTINGS.outletEnabled && product.outlet){
+    const pct = SETTINGS.outletPercent || 0;
+    return {
+      price: Math.round(product.price * (1 - pct / 100)),
+      original: product.price,
+      discounted: pct > 0,
+      badge: `${SETTINGS.outletTitle || 'Outlet'} −${pct}%`
+    };
+  }
   if(SETTINGS.promoEnabled && (SETTINGS.promoPercent || 0) > 0){
     const pct = SETTINGS.promoPercent;
     return {
@@ -1054,29 +1135,18 @@ function productVisual(p){
 
 /* ---------- Render catálogo ---------- */
 const grid = document.getElementById('grid');
-function renderGrid(){
-  if(!productsLoaded){
-    grid.innerHTML = `<div style="grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--ink-soft); background:var(--card);">Cargando catálogo…</div>`;
-    return;
-  }
-  const list = currentFilter === 'todo' ? PRODUCTS : PRODUCTS.filter(p => p.cat === currentFilter);
-  document.getElementById('metaCount').textContent = PRODUCTS.length;
-  if(list.length === 0){
-    grid.innerHTML = `<div style="grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--ink-soft); background:var(--card);">No hay piezas en esta categoría todavía.</div>`;
-    return;
-  }
-  grid.innerHTML = list.map(p => {
-    const hasSizes = p.sizes && p.sizes.length > 0;
-    const allOut = hasSizes ? p.sizes.every(s => s.stock <= 0) : p.stock <= 0;
-    const sortedSizes = hasSizes ? [...p.sizes].sort((a,b) => (b.stock>0) - (a.stock>0)) : null;
-    const initialSize = sortedSizes ? sortedSizes[0].label : null;
-    const sizeSelect = hasSizes ? `
-      <select class="size-select">
-        ${sortedSizes.map(s =>
-          `<option value="${s.label}" ${s.stock<=0?'disabled':''}>${s.label} ${s.stock<=0?'— agotado':`(${s.stock})`}</option>`
-        ).join('')}
-      </select>` : '';
-    return `
+function cardHtml(p){
+  const hasSizes = p.sizes && p.sizes.length > 0;
+  const allOut = hasSizes ? p.sizes.every(s => s.stock <= 0) : p.stock <= 0;
+  const sortedSizes = hasSizes ? [...p.sizes].sort((a,b) => (b.stock>0) - (a.stock>0)) : null;
+  const initialSize = sortedSizes ? sortedSizes[0].label : null;
+  const sizeSelect = hasSizes ? `
+    <select class="size-select">
+      ${sortedSizes.map(s =>
+        `<option value="${s.label}" ${s.stock<=0?'disabled':''}>${s.label} ${s.stock<=0?'— agotado':`(${s.stock})`}</option>`
+      ).join('')}
+    </select>` : '';
+  return `
     <div class="card" data-id="${p.id}">
       <div class="art">${productVisual(p)}</div>
       <div class="tag">${p.material}</div>
@@ -1090,16 +1160,30 @@ function renderGrid(){
       </div>
     </div>
   `;
-  }).join('');
 }
-grid.addEventListener('change', e => {
+
+function renderGrid(){
+  if(!productsLoaded){
+    grid.innerHTML = `<div style="grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--ink-soft); background:var(--card);">Cargando catálogo…</div>`;
+    return;
+  }
+  const list = currentFilter === 'todo' ? PRODUCTS : PRODUCTS.filter(p => p.cat === currentFilter);
+  document.getElementById('metaCount').textContent = PRODUCTS.length;
+  if(list.length === 0){
+    grid.innerHTML = `<div style="grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--ink-soft); background:var(--card);">No hay piezas en esta categoría todavía.</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(cardHtml).join('');
+}
+function handleCatalogChange(e){
   const sel = e.target.closest('.size-select');
   if(!sel) return;
   const card = sel.closest('.card');
   const p = PRODUCTS.find(x => x.id === card.dataset.id);
   if(!p) return;
   card.querySelector('.card-price').innerHTML = priceHtml(p, sel.value);
-});
+}
+grid.addEventListener('change', handleCatalogChange);
 
 function renderFilters(){
   const filtersEl = document.getElementById('filters');
@@ -1119,7 +1203,7 @@ function populateCategorySelect(){
   if(CATEGORIES.some(c => c.id === current)) sel.value = current;
 }
 
-grid.addEventListener('click', e => {
+function handleCatalogClick(e){
   const artEl = e.target.closest('.art');
   if(artEl && !e.target.closest('.add-btn')){
     const card = artEl.closest('.card');
@@ -1146,7 +1230,57 @@ grid.addEventListener('click', e => {
   saveCart();
   renderCart();
   showToast("Se agregó al carrito");
-});
+}
+grid.addEventListener('click', handleCatalogClick);
+
+/* ---------- Outlet ---------- */
+const outletGrid = document.getElementById('outletGrid');
+outletGrid.addEventListener('change', handleCatalogChange);
+outletGrid.addEventListener('click', handleCatalogClick);
+
+function isOutletProduct(p){
+  if(p.outlet) return true;
+  if(SETTINGS.lastUnitDiscountEnabled){
+    if(p.sizes && p.sizes.length) return p.sizes.some(s => s.stock === 1);
+    return p.stock === 1;
+  }
+  return false;
+}
+
+function renderOutletGrid(){
+  const list = PRODUCTS.filter(isOutletProduct);
+  if(list.length === 0){
+    outletGrid.innerHTML = `<div class="outlet-empty">Por ahora no hay piezas en Outlet. Vuelve pronto.</div>`;
+    return;
+  }
+  outletGrid.innerHTML = list.map(cardHtml).join('');
+}
+
+function applyOutletTheme(){
+  const el = document.getElementById('outletOverlay');
+  if(!el) return;
+  const accent = SETTINGS.outletColor || '#E4572E';
+  el.style.setProperty('--clay', accent);
+  el.style.setProperty('--clay-deep', shade(accent, -0.18));
+  el.style.setProperty('--cream', '#1B1815');
+  el.style.setProperty('--card', '#242019');
+  el.style.setProperty('--ink', '#F5F1EA');
+  el.style.setProperty('--ink-soft', '#B9AFA0');
+  el.style.setProperty('--line', '#3A342C');
+  el.style.setProperty('--moss', shade(accent, 0.25));
+  el.style.setProperty('--danger', '#FF6B57');
+}
+
+function openOutlet(){
+  applyOutletTheme();
+  renderOutletGrid();
+  document.getElementById('outletOverlay').classList.add('open');
+}
+function closeOutlet(){
+  document.getElementById('outletOverlay').classList.remove('open');
+}
+document.getElementById('outletOpenBtn').addEventListener('click', openOutlet);
+document.getElementById('outletCloseBtn').addEventListener('click', closeOutlet);
 
 function openLightbox(p){
   document.getElementById('lightboxVisual').innerHTML = productVisual(p);
@@ -1746,6 +1880,10 @@ function fillSiteForm(){
   document.getElementById('sPromoPercent').value = SETTINGS.promoPercent;
   document.getElementById('sLastUnitEnabled').checked = !!SETTINGS.lastUnitDiscountEnabled;
   document.getElementById('sLastUnitPercent').value = SETTINGS.lastUnitDiscountPercent;
+  document.getElementById('sOutletEnabled').checked = !!SETTINGS.outletEnabled;
+  document.getElementById('sOutletTitle').value = SETTINGS.outletTitle;
+  document.getElementById('sOutletPercent').value = SETTINGS.outletPercent;
+  document.getElementById('sOutletColor').value = SETTINGS.outletColor;
 }
 
 let currentHeroImages = [];
@@ -1814,7 +1952,11 @@ document.getElementById('saveSiteBtn').addEventListener('click', async () => {
     promoEnabled: document.getElementById('sPromoEnabled').checked,
     promoPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sPromoPercent').value, 10) || 0)),
     lastUnitDiscountEnabled: document.getElementById('sLastUnitEnabled').checked,
-    lastUnitDiscountPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sLastUnitPercent').value, 10) || 0))
+    lastUnitDiscountPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sLastUnitPercent').value, 10) || 0)),
+    outletEnabled: document.getElementById('sOutletEnabled').checked,
+    outletTitle: document.getElementById('sOutletTitle').value.trim() || DEFAULT_SETTINGS.outletTitle,
+    outletPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sOutletPercent').value, 10) || 0)),
+    outletColor: document.getElementById('sOutletColor').value || DEFAULT_SETTINGS.outletColor
   };
   try{
     await setDoc(settingsRef, patch, { merge:true });
@@ -1858,12 +2000,13 @@ function renderAdminList(){
   list.innerHTML = PRODUCTS.map(p => {
     const catName = (CATEGORIES.find(c => c.id === p.cat) || {}).name || p.cat;
     const sizesText = (p.sizes && p.sizes.length) ? ` · Tallas: ${p.sizes.map(s => `${s.label} (${s.stock})`).join(', ')}` : '';
+    const outletText = p.outlet ? ' · 🔥 Outlet' : '';
     return `
     <div class="admin-row" data-id="${p.id}">
       <div class="art">${productVisual(p)}</div>
       <div class="info">
         <h4>${p.name}</h4>
-        <div class="p">${fmt(p.price)} · ${p.stock} disp. · ${catName}${sizesText}</div>
+        <div class="p">${fmt(p.price)} · ${p.stock} disp. · ${catName}${sizesText}${outletText}</div>
       </div>
       <div class="actions">
         <button class="icon-sm edit-product" title="Editar">✎</button>
@@ -2054,6 +2197,7 @@ function startEditProduct(product){
   currentSizes = (product.sizes || []).map(s => ({ label: s.label, stock: s.stock }));
   renderSizeRows();
   if(currentSizes.length === 0) document.getElementById('fStock').value = product.stock;
+  document.getElementById('fOutlet').checked = !!product.outlet;
   pendingImageDataUrl = null;
   removeImageFlag = false;
   currentImageUrl = product.imageUrl || null;
@@ -2071,6 +2215,7 @@ function endEditProduct(){
   document.getElementById('fIcon').value = 'pijama';
   currentSizes = [];
   renderSizeRows();
+  document.getElementById('fOutlet').checked = false;
   pendingImageDataUrl = null;
   removeImageFlag = false;
   currentImageUrl = null;
@@ -2112,7 +2257,8 @@ document.getElementById('addProductBtn').addEventListener('click', async () => {
     if(pendingImageDataUrl) imageUrl = pendingImageDataUrl;
 
     addBtn.textContent = wasEditing ? 'Guardando...' : 'Agregando...';
-    const data = {name, price, cat, icon, material, stock, sizes, desc, imageUrl: imageUrl || null};
+    const outlet = document.getElementById('fOutlet').checked;
+    const data = {name, price, cat, icon, material, stock, sizes, desc, imageUrl: imageUrl || null, outlet};
 
     if(wasEditing){
       await updateDoc(doc(db, "productos", editingId), data);

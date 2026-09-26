@@ -164,6 +164,12 @@
     width:100%; margin-top:10px; padding:8px 10px; border-radius:8px; border:1px solid var(--line);
     background:var(--cream); color:var(--ink); font-family:inherit; font-size:13px;
   }
+  .price-wrap{ display:flex; flex-direction:column; gap:2px; }
+  .price-original{ font-size:12px; color:var(--ink-soft); text-decoration:line-through; }
+  .discount-badge{
+    display:inline-block; margin-top:2px; font-size:11px; font-weight:600; color:#fff;
+    background:var(--danger); border-radius:6px; padding:2px 7px; width:fit-content;
+  }
   .card .art svg{ height:110px; width:auto; }
   .card .art img{ width:100%; height:100%; object-fit:cover; border-radius:12px; }
   .card .tag{ font-size:12.5px; color:var(--moss); margin-bottom:6px; }
@@ -584,49 +590,84 @@
     </div>
 
     <div id="adminSiteSection" style="display:none;">
-      <div class="section-title">Nombre y textos</div>
-      <div class="field"><label>Nombre de la tienda</label><input id="sName" placeholder="Luna Arcoiris"></div>
-      <div class="field"><label>Título del hero</label><textarea id="sHeroTitle" placeholder="Calidad a un buen precio, para ti."></textarea></div>
-      <div class="field"><label>Descripción del hero</label><textarea id="sHeroSub" placeholder="Pijamas, zapatos, maquillaje y mucho más..."></textarea></div>
-      <div class="field"><label>Texto del pie de página</label><input id="sFooter" placeholder="Luna Arcoiris — tu tienda virtual de confianza."></div>
-
-      <div class="section-title">Apariencia</div>
-      <div class="field">
-        <label>Color de acento</label>
-        <input id="sAccent" type="color" style="height:42px; padding:4px; cursor:pointer;">
+      <div class="admin-tabs" id="siteSubTabs" style="margin-bottom:16px;">
+        <button class="chip active" data-subtab="general">General</button>
+        <button class="chip" data-subtab="carrusel">Carrusel</button>
+        <button class="chip" data-subtab="politicas">Políticas</button>
+        <button class="chip" data-subtab="promos">Promociones</button>
       </div>
 
-      <div class="section-title">Datos de contacto</div>
-      <div class="field"><label>Número de WhatsApp (solo dígitos, con código de país)</label><input id="sWhatsapp" placeholder="573001234567"></div>
+      <div id="siteGeneralSection">
+        <div class="section-title">Nombre y textos</div>
+        <div class="field"><label>Nombre de la tienda</label><input id="sName" placeholder="Luna Arcoiris"></div>
+        <div class="field"><label>Título del hero</label><textarea id="sHeroTitle" placeholder="Calidad a un buen precio, para ti."></textarea></div>
+        <div class="field"><label>Descripción del hero</label><textarea id="sHeroSub" placeholder="Pijamas, zapatos, maquillaje y mucho más..."></textarea></div>
+        <div class="field"><label>Texto del pie de página</label><input id="sFooter" placeholder="Luna Arcoiris — tu tienda virtual de confianza."></div>
 
-      <div class="section-title">Redes sociales (déjalo vacío para ocultar el ícono)</div>
-      <div class="row2">
-        <div class="field"><label>Instagram (link completo)</label><input id="sInstagram" placeholder="https://instagram.com/tu_tienda"></div>
-        <div class="field"><label>Facebook (link completo)</label><input id="sFacebook" placeholder="https://facebook.com/tu_tienda"></div>
+        <div class="section-title">Apariencia</div>
+        <div class="field">
+          <label>Color de acento</label>
+          <input id="sAccent" type="color" style="height:42px; padding:4px; cursor:pointer;">
+        </div>
+
+        <div class="section-title">Datos de contacto</div>
+        <div class="field"><label>Número de WhatsApp (solo dígitos, con código de país)</label><input id="sWhatsapp" placeholder="573001234567"></div>
+
+        <div class="section-title">Redes sociales (déjalo vacío para ocultar el ícono)</div>
+        <div class="row2">
+          <div class="field"><label>Instagram (link completo)</label><input id="sInstagram" placeholder="https://instagram.com/tu_tienda"></div>
+          <div class="field"><label>Facebook (link completo)</label><input id="sFacebook" placeholder="https://facebook.com/tu_tienda"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>TikTok (link completo)</label><input id="sTiktok" placeholder="https://tiktok.com/@tu_tienda"></div>
+          <div class="field"><label>YouTube (link completo)</label><input id="sYoutube" placeholder="https://youtube.com/@tu_tienda"></div>
+        </div>
       </div>
-      <div class="row2">
-        <div class="field"><label>TikTok (link completo)</label><input id="sTiktok" placeholder="https://tiktok.com/@tu_tienda"></div>
-        <div class="field"><label>YouTube (link completo)</label><input id="sYoutube" placeholder="https://youtube.com/@tu_tienda"></div>
+
+      <div id="siteCarouselSection" style="display:none;">
+        <div class="section-title">Imágenes del carrusel del inicio (opcional)</div>
+        <div class="config-note" style="margin-bottom:10px;">
+          Van rotando automáticamente en el círculo de la página de inicio. Si no subes ninguna, se muestra el logo de la tienda. Máximo 5 imágenes.
+        </div>
+        <div id="heroImagesList" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
+        <input type="file" id="fHeroImageFile" accept="image/png, image/jpeg, image/webp">
       </div>
 
-      <div class="section-title">Imágenes del carrusel del inicio (opcional)</div>
-      <div class="config-note" style="margin-bottom:10px;">
-        Van rotando automáticamente en el círculo de la página de inicio. Si no subes ninguna, se muestra el logo de la tienda. Máximo 5 imágenes.
+      <div id="sitePoliciesSection" style="display:none;">
+        <div class="section-title">Quiénes somos</div>
+        <div class="field"><label>Título</label><input id="sAboutTitle" placeholder="Quiénes somos"></div>
+        <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sAboutText" rows="5"></textarea></div>
+
+        <div class="section-title">Política de tratamiento de datos</div>
+        <div class="field"><label>Título</label><input id="sPrivacyTitle" placeholder="Política de tratamiento de datos"></div>
+        <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sPrivacyText" rows="6"></textarea></div>
+
+        <div class="section-title">Cambios y devoluciones</div>
+        <div class="field"><label>Título</label><input id="sReturnsTitle" placeholder="Cambios y devoluciones"></div>
+        <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sReturnsText" rows="6"></textarea></div>
       </div>
-      <div id="heroImagesList" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
-      <input type="file" id="fHeroImageFile" accept="image/png, image/jpeg, image/webp">
 
-      <div class="section-title">Quiénes somos</div>
-      <div class="field"><label>Título</label><input id="sAboutTitle" placeholder="Quiénes somos"></div>
-      <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sAboutText" rows="5"></textarea></div>
+      <div id="sitePromoSection" style="display:none;">
+        <div class="section-title">Descuento general (promoción activa)</div>
+        <div class="config-note" style="margin-bottom:10px;">
+          Actívalo cuando quieras una promoción para todo el catálogo. Se ve de una en los precios: el precio original tachado y el precio ya rebajado al lado.
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;">
+          <input type="checkbox" id="sPromoEnabled" style="width:auto;">
+          <span>Activar descuento general</span>
+        </label>
+        <div class="field"><label>Porcentaje de descuento (%)</label><input id="sPromoPercent" type="number" min="0" max="90" placeholder="20"></div>
 
-      <div class="section-title">Política de tratamiento de datos</div>
-      <div class="field"><label>Título</label><input id="sPrivacyTitle" placeholder="Política de tratamiento de datos"></div>
-      <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sPrivacyText" rows="6"></textarea></div>
-
-      <div class="section-title">Cambios y devoluciones</div>
-      <div class="field"><label>Título</label><input id="sReturnsTitle" placeholder="Cambios y devoluciones"></div>
-      <div class="field"><label>Texto (usa doble salto de línea para separar párrafos)</label><textarea id="sReturnsText" rows="6"></textarea></div>
+        <div class="section-title">Descuento por última unidad</div>
+        <div class="config-note" style="margin-bottom:10px;">
+          Cuando a una talla (o a un producto sin tallas) le queda exactamente 1 unidad, se le aplica este descuento automáticamente para ayudarte a rotar ese último inventario. Se ve igual: precio tachado y precio rebajado.
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;">
+          <input type="checkbox" id="sLastUnitEnabled" style="width:auto;">
+          <span>Activar descuento por última unidad</span>
+        </label>
+        <div class="field"><label>Porcentaje de descuento (%)</label><input id="sLastUnitPercent" type="number" min="0" max="90" placeholder="15"></div>
+      </div>
 
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveSiteBtn">Guardar cambios del sitio</button>
@@ -721,7 +762,11 @@ const DEFAULT_SETTINGS = {
   privacyText: "En Luna Arcoiris recolectamos únicamente los datos personales necesarios para procesar tu pedido: nombre, número de contacto y dirección de entrega. Esta información se solicita a través de WhatsApp al momento de confirmar tu compra.\n\nTus datos se usan exclusivamente para gestionar el pedido, coordinar el envío y resolver dudas relacionadas con tu compra. No compartimos, vendemos ni cedemos tu información a terceros para fines comerciales.\n\nDe acuerdo con la Ley 1581 de 2012 (Ley de Protección de Datos Personales) y sus decretos reglamentarios en Colombia, como titular de tus datos tienes derecho a conocer, actualizar, rectificar y solicitar la eliminación de la información que hayamos recolectado. Para ejercer estos derechos, puedes escribirnos directamente por WhatsApp.\n\nAl realizar un pedido a través de este sitio, aceptas el tratamiento de tus datos personales conforme a lo descrito en esta política.",
   returnsTitle: "Cambios y devoluciones",
   returnsText: "Queremos que quedes conforme con tu compra. Si el producto no te queda bien o llegó en mal estado, escríbenos por WhatsApp dentro de los 5 días calendario siguientes a que lo recibas.\n\nPara aceptar un cambio, el producto debe estar sin uso, con sus etiquetas originales y en el mismo estado en que lo recibiste. En prendas y calzado, el cambio más común es por talla — te pedimos confirmar la nueva talla disponible con nosotros antes de enviar el producto de vuelta.\n\nPor tratarse de una compra a distancia, y de acuerdo con la Ley 1480 de 2012 (Estatuto del Consumidor) en Colombia, tienes derecho de retracto dentro de los 5 días hábiles siguientes a la entrega, siempre que el producto no haya sido usado y conserve su empaque y etiquetas originales.\n\nLos costos de envío de la devolución corren por cuenta del cliente, salvo que el producto haya llegado con un defecto de fábrica o distinto a lo pedido, caso en el cual Luna Arcoiris asume el costo. Para iniciar un cambio o devolución, contáctanos por WhatsApp con tu número de pedido.",
-  heroImages: [] // fotos del carrusel del inicio; vacío = se muestra el logo
+  heroImages: [], // fotos del carrusel del inicio; vacío = se muestra el logo
+  promoEnabled: false,
+  promoPercent: 20,
+  lastUnitDiscountEnabled: false,
+  lastUnitDiscountPercent: 15
 };
 
 const CART_KEY = "lunaArcoiris_carrito_v1"; // el carrito sigue siendo local a cada visitante
@@ -899,6 +944,8 @@ function applySettings(){
   document.documentElement.style.setProperty('--clay-deep', shade(SETTINGS.accentColor, -0.2));
   renderFooterSocial();
   renderHeroCarousel();
+  if(typeof renderGrid === 'function' && PRODUCTS.length) renderGrid();
+  if(typeof renderCart === 'function') renderCart();
 }
 
 /* ---------- Carrusel del hero ---------- */
@@ -960,6 +1007,43 @@ function renderFooterSocial(){
 }
 
 function fmt(n){ return "$" + Number(n).toLocaleString("es-CO"); }
+
+// Calcula el precio real que se cobra por una unidad de un producto (y, si
+// aplica, de una talla en concreto), aplicando el descuento por última
+// unidad (si a esa talla/producto le queda 1 solo) o el descuento general
+// de promoción — el que aplique según lo configurado en el panel admin.
+function getUnitPrice(product, size){
+  let stock = product.stock;
+  if(size && product.sizes && product.sizes.length){
+    const sizeObj = product.sizes.find(s => s.label === size);
+    if(sizeObj) stock = sizeObj.stock;
+  }
+  if(SETTINGS.lastUnitDiscountEnabled && stock === 1){
+    const pct = SETTINGS.lastUnitDiscountPercent || 0;
+    return {
+      price: Math.round(product.price * (1 - pct / 100)),
+      original: product.price,
+      discounted: pct > 0,
+      badge: `Última unidad −${pct}%`
+    };
+  }
+  if(SETTINGS.promoEnabled && (SETTINGS.promoPercent || 0) > 0){
+    const pct = SETTINGS.promoPercent;
+    return {
+      price: Math.round(product.price * (1 - pct / 100)),
+      original: product.price,
+      discounted: true,
+      badge: `−${pct}%`
+    };
+  }
+  return { price: product.price, original: product.price, discounted: false, badge: null };
+}
+
+function priceHtml(product, size){
+  const info = getUnitPrice(product, size);
+  if(!info.discounted) return `<span class="price">${fmt(info.price)}</span>`;
+  return `<span class="price-wrap"><span class="price-original">${fmt(info.original)}</span><span class="price">${fmt(info.price)}</span><span class="discount-badge">${info.badge}</span></span>`;
+}
 function saveCart(){ localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
 function productVisual(p){
   if(p.imageUrl){
@@ -984,9 +1068,11 @@ function renderGrid(){
   grid.innerHTML = list.map(p => {
     const hasSizes = p.sizes && p.sizes.length > 0;
     const allOut = hasSizes ? p.sizes.every(s => s.stock <= 0) : p.stock <= 0;
+    const sortedSizes = hasSizes ? [...p.sizes].sort((a,b) => (b.stock>0) - (a.stock>0)) : null;
+    const initialSize = sortedSizes ? sortedSizes[0].label : null;
     const sizeSelect = hasSizes ? `
       <select class="size-select">
-        ${[...p.sizes].sort((a,b) => (b.stock>0) - (a.stock>0)).map(s =>
+        ${sortedSizes.map(s =>
           `<option value="${s.label}" ${s.stock<=0?'disabled':''}>${s.label} ${s.stock<=0?'— agotado':`(${s.stock})`}</option>`
         ).join('')}
       </select>` : '';
@@ -999,13 +1085,21 @@ function renderGrid(){
       ${sizeSelect}
       <div class="stock-line ${allOut?'out':(p.stock<=3?'low':'')}">${allOut ? 'Agotado' : (p.stock<=3 ? `¡Solo quedan ${p.stock}!` : `${p.stock} disponibles`)}</div>
       <div class="foot">
-        <span class="price">${fmt(p.price)}</span>
+        <span class="card-price">${priceHtml(p, initialSize)}</span>
         <button class="add-btn" data-id="${p.id}" ${allOut?'disabled':''}>${allOut?'Agotado':'Agregar'}</button>
       </div>
     </div>
   `;
   }).join('');
 }
+grid.addEventListener('change', e => {
+  const sel = e.target.closest('.size-select');
+  if(!sel) return;
+  const card = sel.closest('.card');
+  const p = PRODUCTS.find(x => x.id === card.dataset.id);
+  if(!p) return;
+  card.querySelector('.card-price').innerHTML = priceHtml(p, sel.value);
+});
 
 function renderFilters(){
   const filtersEl = document.getElementById('filters');
@@ -1057,7 +1151,9 @@ grid.addEventListener('click', e => {
 function openLightbox(p){
   document.getElementById('lightboxVisual').innerHTML = productVisual(p);
   document.getElementById('lightboxName').textContent = p.name;
-  document.getElementById('lightboxPrice').textContent = fmt(p.price) + (p.stock>0 ? ` · ${p.stock} disponibles` : ' · Agotado');
+  const info = getUnitPrice(p, null);
+  const priceText = info.discounted ? `${fmt(info.original)} → ${fmt(info.price)} (${info.badge})` : fmt(info.price);
+  document.getElementById('lightboxPrice').textContent = priceText + (p.stock>0 ? ` · ${p.stock} disponibles` : ' · Agotado');
   document.getElementById('lightboxOverlay').classList.add('open');
 }
 function closeLightbox(){
@@ -1113,7 +1209,10 @@ function cartItems(){
       const sep = key.indexOf('::');
       const id = sep === -1 ? key : key.slice(0, sep);
       const size = sep === -1 ? null : key.slice(sep + 2);
-      return { key, product: PRODUCTS.find(p => p.id === id), qty, size };
+      const product = PRODUCTS.find(p => p.id === id);
+      if(!product) return { key, product: null, qty, size, unitPrice: 0 };
+      const info = getUnitPrice(product, size);
+      return { key, product, qty, size, unitPrice: info.price, discounted: info.discounted, original: info.original };
     })
     .filter(x => x.product && x.qty > 0);
 }
@@ -1127,12 +1226,12 @@ function renderCart(){
   if(items.length === 0){
     cartBody.innerHTML = `<div class="empty-cart">Tu carrito está vacío.<br>Agrega alguna pieza del catálogo.</div>`;
   } else {
-    cartBody.innerHTML = items.map(({key, product, qty, size}) => `
+    cartBody.innerHTML = items.map(({key, product, qty, size, unitPrice, discounted, original}) => `
       <div class="cart-item" data-key="${key}">
         <div class="art">${productVisual(product)}</div>
         <div class="info">
           <h4>${product.name}${size ? ` · Talla ${size}` : ''}</h4>
-          <div class="p">${fmt(product.price)}</div>
+          <div class="p">${discounted ? `<span class="price-original">${fmt(original)}</span> ${fmt(unitPrice)}` : fmt(unitPrice)}</div>
         </div>
         <div class="qty">
           <button class="qty-minus">−</button>
@@ -1144,7 +1243,7 @@ function renderCart(){
     `).join('');
   }
 
-  const subtotal = items.reduce((s,i) => s + i.product.price * i.qty, 0);
+  const subtotal = items.reduce((s,i) => s + i.unitPrice * i.qty, 0);
   cartSubtotal.textContent = fmt(subtotal);
   document.getElementById('waBtn').disabled = items.length === 0;
 }
@@ -1177,17 +1276,17 @@ document.getElementById('waBtn').addEventListener('click', async () => {
   // Abrimos la pestaña de inmediato (antes de esperar nada) para que el navegador no la bloquee
   const newTab = window.open('', '_blank');
 
-  const subtotal = items.reduce((s,i) => s + i.product.price * i.qty, 0);
+  const subtotal = items.reduce((s,i) => s + i.unitPrice * i.qty, 0);
   let msg = "Hola, quiero hacer este pedido:\n\n";
-  items.forEach(({product,qty,size}) => {
-    msg += `• ${product.name}${size ? ` (Talla ${size})` : ''} x${qty} — ${fmt(product.price * qty)}\n`;
+  items.forEach(({product,qty,size,unitPrice}) => {
+    msg += `• ${product.name}${size ? ` (Talla ${size})` : ''} x${qty} — ${fmt(unitPrice * qty)}\n`;
   });
   msg += `\nSubtotal: ${fmt(subtotal)}`;
   const url = `https://wa.me/${SETTINGS.whatsappNumber}?text=${encodeURIComponent(msg)}`;
 
   try{
     await addDoc(ordersCol, {
-      items: items.map(({product, qty, size}) => ({ id: product.id, name: product.name, price: product.price, qty, size: size || null })),
+      items: items.map(({product, qty, size, unitPrice}) => ({ id: product.id, name: product.name, price: unitPrice, qty, size: size || null })),
       subtotal,
       status: 'pendiente',
       createdAt: Date.now(),
@@ -1316,6 +1415,18 @@ document.getElementById('adminTabs').addEventListener('click', e => {
   if(tab === 'sitio') fillSiteForm();
   if(tab === 'pedidos') renderOrders();
   if(tab === 'estadisticas') renderStats();
+});
+
+document.getElementById('siteSubTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if(!btn) return;
+  document.querySelectorAll('#siteSubTabs .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const sub = btn.dataset.subtab;
+  document.getElementById('siteGeneralSection').style.display = sub === 'general' ? 'block' : 'none';
+  document.getElementById('siteCarouselSection').style.display = sub === 'carrusel' ? 'block' : 'none';
+  document.getElementById('sitePoliciesSection').style.display = sub === 'politicas' ? 'block' : 'none';
+  document.getElementById('sitePromoSection').style.display = sub === 'promos' ? 'block' : 'none';
 });
 
 /* ---------- Panel admin: categorías ---------- */
@@ -1631,6 +1742,10 @@ function fillSiteForm(){
   document.getElementById('sReturnsText').value = SETTINGS.returnsText;
   currentHeroImages = [...(SETTINGS.heroImages || [])];
   renderHeroImagesList();
+  document.getElementById('sPromoEnabled').checked = !!SETTINGS.promoEnabled;
+  document.getElementById('sPromoPercent').value = SETTINGS.promoPercent;
+  document.getElementById('sLastUnitEnabled').checked = !!SETTINGS.lastUnitDiscountEnabled;
+  document.getElementById('sLastUnitPercent').value = SETTINGS.lastUnitDiscountPercent;
 }
 
 let currentHeroImages = [];
@@ -1695,7 +1810,11 @@ document.getElementById('saveSiteBtn').addEventListener('click', async () => {
     privacyText: document.getElementById('sPrivacyText').value.trim() || DEFAULT_SETTINGS.privacyText,
     returnsTitle: document.getElementById('sReturnsTitle').value.trim() || DEFAULT_SETTINGS.returnsTitle,
     returnsText: document.getElementById('sReturnsText').value.trim() || DEFAULT_SETTINGS.returnsText,
-    heroImages: currentHeroImages
+    heroImages: currentHeroImages,
+    promoEnabled: document.getElementById('sPromoEnabled').checked,
+    promoPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sPromoPercent').value, 10) || 0)),
+    lastUnitDiscountEnabled: document.getElementById('sLastUnitEnabled').checked,
+    lastUnitDiscountPercent: Math.max(0, Math.min(90, parseInt(document.getElementById('sLastUnitPercent').value, 10) || 0))
   };
   try{
     await setDoc(settingsRef, patch, { merge:true });
